@@ -1,0 +1,14 @@
+# Normalize line endings: text files use LF in the repo, checked out native.
+* text=auto
+
+# Explicit text types
+*.py   text
+*.md   text
+*.txt  text
+*.json text
+
+# Binary (never diff/merge or touch line endings)
+*.png  binary
+*.mov  binary
+*.mp4  binary
+*.npz  binary

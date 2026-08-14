@@ -1,0 +1,12 @@
+{
+  "_comment": "Locked capture configuration. Intrinsics MUST be calibrated in this exact mode (same resolution + lens + orientation). fps does not affect intrinsics; resolution and lens do. Decided 2026-08-13.",
+  "device": "iPad 10th gen",
+  "resolution": "1920x1080",
+  "fps": 240,
+  "mode": "slow-motion / high-frame-rate video",
+  "lens_zoom": "1x (native main lens) - never change",
+  "orientation": "landscape - identical for calibration and capture",
+  "focus_exposure": "AE/AF locked before every recording",
+  "rationale": "1080p120 chosen over 4K60/1080p240: short exposure keeps fast foot markers sharp (motion blur is the real 2D error source); 120fps richly samples the clearance trajectory (min clearance is a velocity-zero turning point, so fps matters less than intuition); sub-pixel marker centroids make 4K's extra pixels largely redundant if framed tightly.",
+  "framing_note": "Frame TIGHTLY on the ~1.5 m crossing zone (not the whole walkway) to maximise pixels-per-marker at 1080p. Use ~15-20 mm markers so they span >=15 px."
+}

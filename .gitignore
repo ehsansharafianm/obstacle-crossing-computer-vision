@@ -1,0 +1,31 @@
+# Data & experiment outputs (large / not for version control)
+code/data/
+code/results/
+code/calibration/*.npz
+code/calibration/*.mp4
+*.mp4
+*.mov
+*.avi
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+*.egg-info/
+.pytest_cache/
+.ipynb_checkpoints/
+
+# Claude Code session dir
+.claude/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Obsidian workspace/cache (keep notes, ignore local UI state)
+docs/.obsidian/workspace*.json
+docs/.obsidian/cache
