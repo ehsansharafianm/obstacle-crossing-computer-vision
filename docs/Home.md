@@ -5,6 +5,9 @@ Obsidian vault for the camera + IMU obstacle-crossing study. Code lives in
 
 ## Map of content
 
+### Start here
+- [[next-steps]] — roadmap & what to do next (living checklist)
+
 ### Design
 - [[camera-imu-workflow]] — full design summary & processing workflow (source of truth for decisions)
 
