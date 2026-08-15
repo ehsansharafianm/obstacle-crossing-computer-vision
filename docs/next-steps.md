@@ -23,10 +23,8 @@ Figure out where the cameras sit relative to each other, so 2D → 3D works.
 - [ ] **[You]** Place cameras on tripods in FINAL positions (sagittal + oblique,
       ~60-90° apart). Once placed, **do not move them** for the session.
 - [ ] **[You]** Same locked settings (1x, 1080p/240, landscape, AE/AF locked).
-- [ ] **[You]** Both cameras record **simultaneously** while you move the board
-      around the shared volume where the crossing will happen (~30-60 s, tilted).
-- [ ] **[You]** A shared start cue visible to both cameras (clap/flash) for rough
-      time-alignment.
+- [ ] **[You]** Record both cameras together — see [[extrinsic-calibration-capture]]
+      (hold the board STILL at ~15-20 poses across the shared volume; no sync needed).
 - [ ] **[Code]** Run `occ.stereo` → relative pose (R, t); check baseline & stereo
       reprojection error. I'll write the runner + a frame-sync helper.
 

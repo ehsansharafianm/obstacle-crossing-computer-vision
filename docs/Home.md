@@ -13,6 +13,7 @@ Obsidian vault for the camera + IMU obstacle-crossing study. Code lives in
 
 ### Protocols (run these in the lab)
 - [[intrinsic-calibration-capture]] — how to film the board so the lens estimate is well-constrained
+- [[extrinsic-calibration-capture]] — filming both cameras together to get their relative positions
 - [[calibration-accuracy-check]] — known-length rod reconstruction accuracy test
 - _more to come: sync-anchor procedure, tracking-validation_
 
