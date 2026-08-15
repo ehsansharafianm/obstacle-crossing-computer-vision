@@ -58,6 +58,24 @@ Run the stereo runner (to be built) → relative pose (R, t). Checks:
 - **Stereo reprojection error** is low (< ~1 px).
 Then triangulation is live and we can do the [[calibration-accuracy-check]] rod test.
 
+## Lessons from failed attempts (do these)
+- **Big board** (57 cm tiled) — small A4 was undetectable at room distance. ✅ solved.
+- **Cameras ~45-60° apart, SAME height** — a wide (~3.6 m baseline) setup made
+  one camera's view too oblique to detect the board; only 5 poses were seen by
+  both, and they disagreed by ~40°. Closer convergence lets BOTH cameras see the
+  board well at every pose. Widen later once the pipeline is validated.
+- **15-20 poses, held still ~4 s each** — need many moments where BOTH cameras
+  see the board still simultaneously (matching is what stereo needs).
+- **Verify on BOTH screens** at each pose before holding — the previously-weak
+  camera must clearly see the checkerboard too.
+- Ruled out as causes (so don't chase them): intrinsics (sub-pixel), board
+  flatness (per-view PnP 0.4 px), time sync (swept all offsets).
+
+## Code
+`scripts/run_stereo.py` (auto-sync + hold matching + stereoCalibrate) and
+`scripts/solve_stereo_robust.py` (offset sweep + planar-ambiguity consensus).
+Need ~>=8 consistent simultaneous still holds for a trustworthy result.
+
 ## Remember
 - Redo THIS capture whenever cameras move; intrinsics stay valid (don't redo those).
 - After extrinsics, cameras must stay put through the crossing recordings.

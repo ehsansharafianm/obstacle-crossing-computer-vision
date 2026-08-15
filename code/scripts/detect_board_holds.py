@@ -84,6 +84,8 @@ def find_holds(video, spec, sample_fps=20.0, move_thresh_px=25.0,
 
 
 if __name__ == "__main__":
-    spec = (BoardSpec.from_measured_json("calibration/board_measured.json")
-            if Path("calibration/board_measured.json").exists() else BoardSpec())
+    board_json = sys.argv[2] if len(sys.argv) > 2 else "calibration/board_measured.json"
+    spec = (BoardSpec.from_measured_json(board_json)
+            if Path(board_json).exists() else BoardSpec())
+    print(f"(using board {board_json})")
     find_holds(sys.argv[1], spec)
