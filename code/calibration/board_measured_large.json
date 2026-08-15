@@ -1,0 +1,10 @@
+{
+  "_comment": "LARGE tiled board for extrinsics. RE-MEASURE the printed 100mm ruler and a square; update square_len_m/marker_len_m before using.",
+  "squares_x": 8,
+  "squares_y": 6,
+  "dict_name": "DICT_5X5_100",
+  "nominal_square_mm": 66.0,
+  "nominal_marker_mm": 49.0,
+  "square_len_m": 0.066,
+  "marker_len_m": 0.049
+}
