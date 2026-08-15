@@ -17,9 +17,17 @@ solves only the relative pose. See [[camera-imu-workflow]], [[next-steps]].
 - Same locked settings as always: **1x, 1080p/240, landscape, AE/AF locked.**
 - Intrinsics don't change here; camera *position* is what we're capturing.
 
+## #1 rule (the mistake to avoid)
+**Both cameras must see the PRINTED pattern at the same time.** The board has the
+pattern on one side only — aim that side at the **midpoint between the two
+cameras**, never straight at one camera (the other then sees the blank back and
+detects nothing). At each pose ask: "can BOTH cameras see the checkerboard now?"
+*(First attempt failed here: the pattern faced cam1, so cam2 detected the board
+in 0 frames.)*
+
 ## What makes a good extrinsics capture
-The board must be seen by **BOTH cameras at the same time**, moved through the
-**shared volume where the crossing actually happens**:
+The board must be seen by **BOTH cameras at the same time** (see #1 rule above),
+moved through the **shared volume where the crossing actually happens**:
 - **Overlap only** — keep the board where both cameras can see it (the crossing zone).
 - **Fill the 3D volume** — near/far (along travel), left/right (mediolateral), and
   **low to obstacle-height (vary Z)**. Z is the weak axis, so cover height well.
