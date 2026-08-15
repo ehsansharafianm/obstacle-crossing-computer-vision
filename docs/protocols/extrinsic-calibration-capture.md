@@ -18,12 +18,19 @@ solves only the relative pose. See [[camera-imu-workflow]], [[next-steps]].
 - Intrinsics don't change here; camera *position* is what we're capturing.
 
 ## #1 rule (the mistake to avoid)
-**Both cameras must see the PRINTED pattern at the same time.** The board has the
-pattern on one side only — aim that side at the **midpoint between the two
-cameras**, never straight at one camera (the other then sees the blank back and
-detects nothing). At each pose ask: "can BOTH cameras see the checkerboard now?"
-*(First attempt failed here: the pattern faced cam1, so cam2 detected the board
-in 0 frames.)*
+**Both cameras must see the PRINTED pattern at the same time**, and the cameras
+are LOW (near floor), so:
+- Hold the board **UPRIGHT** (pattern facing sideways/horizontally, like a sign),
+  **not** flat on top of a box facing the ceiling — a ceiling-facing pattern is
+  edge-on to low cameras and detects nothing.
+- Aim the pattern at the **midpoint between the two cameras** so both see its
+  face (never straight at one camera → the other sees the blank back).
+- **Verify before recording:** hold one pose and look at BOTH iPad screens — can
+  you see the checkerboard on both? If not, rotate until you can, then record.
+
+*Failures so far: attempt 1 — pattern faced only cam1 (cam2 = 0 detections);
+attempt 2 — pattern lay flat facing the ceiling, edge-on to both (0 detections
+on both). Fix: upright, facing horizontally toward the midpoint of the cameras.*
 
 ## What makes a good extrinsics capture
 The board must be seen by **BOTH cameras at the same time** (see #1 rule above),
