@@ -91,7 +91,7 @@ def consensus(cands):
 
 # Sweep the time offset; pick the alignment that maximises geometric consensus.
 best_overall = (-1, None, None, None)
-for off_ms in range(-6000, 6001, 100):
+for off_ms in range(-15000, 15001, 100):
     offset = off_ms / 1000.0
     cands, npairs = build_candidates(offset)
     if npairs < 4:
