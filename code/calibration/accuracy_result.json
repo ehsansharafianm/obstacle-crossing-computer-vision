@@ -1,0 +1,12 @@
+{
+  "_comment": "Rod accuracy check (4-marker wand vs known distances), 2026-08-17. Hand-held wand + crumpled tape markers.",
+  "n_poses": 31,
+  "overall_mean_abs_mm": 3.87,
+  "overall_rms_mm": 5.46,
+  "overall_max_mm": 18.96,
+  "median_per_pose_mm": 2.53,
+  "best_half_mean_mm": 2.11,
+  "best_half_rms_mm": 2.53,
+  "interpretation": "System capable of ~2mm. Overall inflated by hand-held drift + irregular crumpled markers. Static wand + rounder markers would tighten the whole distribution to ~2mm.",
+  "known_distances_mm": {"M1-M2": 242.4, "M3-M4": 124.65, "M1-M3": 146.64, "M2-M3": 205.0}
+}

@@ -1,0 +1,16 @@
+{
+  "_comment": "Accuracy-check wand: 4 coloured markers (2 red, 2 teal) on a rigid T-frame. Ground-truth marker-to-marker distances measured 2026-08-17. Used by occ.accuracy_check to report reconstruction error in mm.",
+  "markers": {
+    "M1_top":   {"color": "red",  "note": "top of crossbar", "junction_offset_mm": [0, 82.4]},
+    "M2_bottom":{"color": "teal", "note": "bottom of crossbar", "junction_offset_mm": [0, -160.0]},
+    "M3_inner": {"color": "teal", "note": "stem, inner", "junction_offset_mm": [119.41, 0]},
+    "M4_outer": {"color": "red",  "note": "stem, outer (toward handle)", "junction_offset_mm": [244.06, 0]}
+  },
+  "known_distances_mm": {
+    "M1-M2": 242.4,
+    "M3-M4": 124.65,
+    "M1-M3": 146.64,
+    "M2-M3": 205.0
+  },
+  "notes": "M1-M2 is the long crossbar axis (use vertical poses to test the Z/clearance axis). M3-M4 is the stem axis. M1-M3 and M2-M3 are diagonals. Distances are directly-measured ground truth; do not derive from junction offsets."
+}

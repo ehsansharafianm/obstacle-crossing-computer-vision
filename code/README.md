@@ -20,7 +20,7 @@ code/
 |---|---------------------------|-------------------------|--------|
 | 1a| Intrinsic calibration     | `occ.calibration`       | ✅ cam1 & cam2 STABLE (0.0% split-half, ~0.93px RMS) |
 | 1b| Stereo extrinsics         | `occ.stereo`            | ✅ 0.74px RMS, baseline 2.04m (static-board + geometric matching) |
-| 2 | Calibration accuracy check| `occ.accuracy_check`    | ✅ rod test + report (synthetic-validated) |
+| 2 | Calibration accuracy check| `occ.accuracy_check` + `run_rod_test` | ✅ real rod test: ~2mm capable (best half 2.1mm), 3.9mm as-measured |
 | 3 | Obstacle digitizing       | `occ.digitize_obstacle` | ☐ todo |
 | 4 | Foot-marker tracking      | `occ.tracking`          | ☐ todo |
 | 5 | 3D reconstruction         | `occ.reconstruct`       | ✅ stereo + N-view (synthetic-validated) |
