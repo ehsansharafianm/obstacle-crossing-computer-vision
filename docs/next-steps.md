@@ -13,7 +13,11 @@ Living checklist of what's next, from the current state onward. Each stage marks
 
 ---
 
-## Stage 2 — Stereo extrinsics (relative camera positions)  ← NEXT
+## Stage 2 — Stereo extrinsics (relative camera positions)  ✅ DONE
+Result: 0.74 px stereo RMS, baseline 2.04 m. Key lessons: big tiled board +
+cameras ~45-60° apart + **static (propped) board** at each pose + geometric
+(time-free) hold matching (`run_stereo_ransac.py`). Cameras must not move now.
+
 Figure out where the cameras sit relative to each other, so 2D → 3D works.
 
 - [ ] **[Decide]** final camera count — 2 vs **3** (3 preferred; the synthetic

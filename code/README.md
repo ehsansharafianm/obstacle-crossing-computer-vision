@@ -19,7 +19,7 @@ code/
 | # | Stage                     | Module                  | Status |
 |---|---------------------------|-------------------------|--------|
 | 1a| Intrinsic calibration     | `occ.calibration`       | ✅ cam1 & cam2 STABLE (0.0% split-half, ~0.93px RMS) |
-| 1b| Stereo extrinsics         | `occ.stereo`            | ☐ needs both cams set up together |
+| 1b| Stereo extrinsics         | `occ.stereo`            | ✅ 0.74px RMS, baseline 2.04m (static-board + geometric matching) |
 | 2 | Calibration accuracy check| `occ.accuracy_check`    | ✅ rod test + report (synthetic-validated) |
 | 3 | Obstacle digitizing       | `occ.digitize_obstacle` | ☐ todo |
 | 4 | Foot-marker tracking      | `occ.tracking`          | ☐ todo |
