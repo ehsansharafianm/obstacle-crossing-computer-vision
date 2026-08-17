@@ -10,6 +10,7 @@ Obsidian vault for the camera + IMU obstacle-crossing study. Code lives in
 
 ### Design
 - [[camera-imu-workflow]] — full design summary & processing workflow (source of truth for decisions)
+- [[automated-pipeline]] — architecture for the turnkey per-participant system
 
 ### Protocols (run these in the lab)
 - [[intrinsic-calibration-capture]] — how to film the board so the lens estimate is well-constrained
