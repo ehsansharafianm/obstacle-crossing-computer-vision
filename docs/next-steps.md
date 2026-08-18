@@ -4,12 +4,20 @@ Living checklist of what's next, from the current state onward. Each stage marks
 **[You]** (physical lab work) vs **[Code]** (I build/run it). See
 [[camera-imu-workflow]] for the full design and [[open-items]] for decisions.
 
-## Where we are
-- ✅ Board printed & measured (square = 28.523 mm)
-- ✅ cam1 & cam2 **intrinsic** calibration — STABLE, saved to
-  `code/calibration/intrinsics_cam{1,2}.npz`
-- ✅ Geometry + accuracy-check code written and synthetic-validated
-- ✅ Pushed to GitHub (`main`)
+## Where we are  (see [[progress-log]] for the full story)
+- ✅ Intrinsics (both cams, STABLE) + stereo extrinsics (0.74 px, 2.04 m baseline)
+- ✅ Accuracy validated — **~2 mm** (rod/wand test)
+- ✅ Marker tracking, camera sync, moving 3D trajectory (validated on wand)
+- ✅ **World-frame transform** — Z = height above floor (0.47 mm floor residual,
+  1011 mm camera height); saved `calibration/world_transform.npz`
+- ⚙️ Foot pilot runs end-to-end (green toe + red heel) → world-frame CSV; refining
+  trajectory quality (bigger markers ✓, clap sync + controlled motion pending)
+- ✅ MATLAB viewer `matlab/plot_trajectory.m`; advisor deck; all pushed to GitHub
+
+### Remaining scope (this phase)
+- [ ] Clean foot trajectories (bigger markers + clap + controlled motion → verify)
+- [ ] Robust occlusion handling (coverage report; later 3rd camera / 6-marker cluster)
+- [ ] Wrap into the one-command session pipeline ([[automated-pipeline]])
 
 ---
 

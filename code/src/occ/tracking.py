@@ -21,8 +21,10 @@ COLOR_RANGES = {
     # detect_foot by the "red nearest the green marker" rule, not by hue alone.
     "red":    [((0, 90, 80), (10, 255, 255)), ((172, 90, 80), (180, 255, 255))],
     "teal":   [((78, 50, 100), (98, 255, 255))],
-    # Foot green marker reads ~hue 82; olive shorts ~hue 101, excluded by upper bound.
-    "green":  [((45, 70, 55), (99, 255, 255))],
+    # Foot green marker (lime plastic) reads ~hue 39; olive shorts ~hue 101 and
+    # yellow obstacles ~hue 25-33 are excluded by the bounds. NOTE: this lime is
+    # close to yellow -- for the real study (yellow obstacles) use a truer green.
+    "green":  [((34, 90, 70), (99, 255, 255))],
     "yellow": [((22, 90, 120), (35, 255, 255))],
     "blue":   [((100, 90, 80), (120, 255, 255))],
     "orange": [((9, 120, 120), (20, 255, 255))],

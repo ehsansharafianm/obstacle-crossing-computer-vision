@@ -6,6 +6,8 @@ Obsidian vault for the camera + IMU obstacle-crossing study. Code lives in
 ## Map of content
 
 ### Start here
+- [[progress-log]] — what we've built & proven, step by step
+- [[code-structure]] — how the code is organised
 - [[next-steps]] — roadmap & what to do next (living checklist)
 
 ### Design
