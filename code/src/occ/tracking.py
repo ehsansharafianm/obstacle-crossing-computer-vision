@@ -94,12 +94,12 @@ def detect_foot(frame, max_area=1500, near_px=500):
     reds = detect_blobs(color_mask(hsv, "red"), max_area=max_area)
     g = max(greens, key=lambda b: b[2])[:2] if greens else None
     r = None
-    if reds:
-        if g is not None:
-            near = [b for b in reds if np.hypot(b[0] - g[0], b[1] - g[1]) <= near_px]
-            r = (max(near, key=lambda b: b[2])[:2] if near else None)
-        else:
-            r = max(reds, key=lambda b: b[2])[:2]
+    if reds and g is not None:
+        # Only trust a red blob near the green toe (same foot) — this rejects
+        # red clutter/reflections in frames where the foot is absent or the toe
+        # marker is not visible.
+        near = [b for b in reds if np.hypot(b[0] - g[0], b[1] - g[1]) <= near_px]
+        r = (max(near, key=lambda b: b[2])[:2] if near else None)
     return g, r
 
 
