@@ -5,6 +5,7 @@ rigid, so the toe–heel distance must stay constant: we use that to sync the tw
 cameras (offset that minimises distance variation) and to gauge accuracy during
 real foot motion. Output: per-frame 3D of both markers + the toe-height signal.
 """
+import argparse
 import csv
 import sys
 from pathlib import Path
@@ -22,7 +23,12 @@ from occ.worldframe import WorldTransform  # noqa: E402
 
 
 def track_foot(video):
+    if not Path(video).exists():
+        raise SystemExit(f"Video not found: {video}\n"
+                         f"  -> use your actual filenames, e.g. --cam1 data\\cam1_pilot.MOV")
     cap = cv2.VideoCapture(video)
+    if not cap.isOpened():
+        raise SystemExit(f"Cannot open video (bad file/codec): {video}")
     fps = cap.get(cv2.CAP_PROP_FPS) or 240.0
     ts, G, R = [], [], []
     lg = lr = None
@@ -50,6 +56,12 @@ def interp(ts, track, q):
 
 
 def main():
+    ap = argparse.ArgumentParser(description="Foot trajectory -> world-frame CSV + plot.")
+    ap.add_argument("--name", default="foot", help="test/participant name -> results/<name>_trajectory.csv")
+    ap.add_argument("--cam1", default="data/cam1_pilot.MOV")
+    ap.add_argument("--cam2", default="data/cam2_pilot.MOV")
+    args = ap.parse_args()
+
     intr1 = Intrinsics.load("calibration/intrinsics_cam1.npz")
     intr2 = Intrinsics.load("calibration/intrinsics_cam2.npz")
     extr = StereoExtrinsics.load("calibration/stereo_extrinsics.npz")
@@ -61,8 +73,8 @@ def main():
                                intr2.camera_matrix, intr2.dist_coeffs, R, T)
         return X[0]
 
-    print("Tracking cam1..."); ts1, G1, R1 = track_foot("data/cam1_pilot.MOV")
-    print("Tracking cam2..."); ts2, G2, R2 = track_foot("data/cam2_pilot.MOV")
+    print(f"Tracking {args.cam1}..."); ts1, G1, R1 = track_foot(args.cam1)
+    print(f"Tracking {args.cam2}..."); ts2, G2, R2 = track_foot(args.cam2)
     print(f"  cam1 green {100*np.mean(~np.isnan(G1[:,0])):.0f}%  red {100*np.mean(~np.isnan(R1[:,0])):.0f}%  |  "
           f"cam2 green {100*np.mean(~np.isnan(G2[:,0])):.0f}%  red {100*np.mean(~np.isnan(R2[:,0])):.0f}%")
 
@@ -128,7 +140,9 @@ def main():
     print(f"Foot trajectory: {int(nok*len(grid))}/{len(grid)} frames, toe {nok*100:.0f}% reconstructed")
 
     Path("results").mkdir(exist_ok=True)
-    with open("results/foot_trajectory.csv", "w", newline="") as f:
+    csv_path = f"results/{args.name}_trajectory.csv"
+    png_path = f"results/{args.name}_trajectory.png"
+    with open(csv_path, "w", newline="") as f:
         w = csv.writer(f); w.writerow(["time_s", "toe_x_mm", "toe_y_mm", "toe_z_mm", "heel_x_mm", "heel_y_mm", "heel_z_mm"])
         for k in range(len(grid)):
             row = [f"{grid[k]:.4f}"]
@@ -147,8 +161,8 @@ def main():
     ax[1].axhline(np.nanmean(thd), color="#888888", ls=":", lw=0.8)
     ax[1].set_title(f"Toe-heel distance (rigid shoe → should be flat).  mean {np.nanmean(thd):.0f} mm, std {np.nanstd(thd):.1f} mm")
     ax[1].set_xlabel("time (s)"); ax[1].set_ylabel("mm")
-    fig.tight_layout(); fig.savefig("results/foot_trajectory.png", dpi=110)
-    print("Saved results/foot_trajectory.png and results/foot_trajectory.csv")
+    fig.tight_layout(); fig.savefig(png_path, dpi=110)
+    print(f"Saved {png_path} and {csv_path}")
 
 
 if __name__ == "__main__":
