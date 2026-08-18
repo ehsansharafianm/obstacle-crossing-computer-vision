@@ -18,6 +18,7 @@ from occ.stereo import StereoExtrinsics  # noqa: E402
 from occ.reconstruct import triangulate_stereo  # noqa: E402
 from occ.tracking import detect_foot  # noqa: E402
 from occ.filtering import clean_trajectory  # noqa: E402
+from occ.worldframe import WorldTransform  # noqa: E402
 
 
 def track_foot(video):
@@ -102,8 +103,27 @@ def main():
     for k in range(len(grid)):
         if not np.isnan(np.concatenate([g1[k], g2[k]])).any(): toe[k] = tri(g1[k], g2[k])
         if not np.isnan(np.concatenate([r1[k], r2[k]])).any(): heel[k] = tri(r1[k], r2[k])
+
+    # Rigid-pair rejection: the shoe is rigid, so a frame whose toe-heel distance
+    # deviates far from the median has a mis-triangulated marker -> drop it.
+    d = np.linalg.norm(toe - heel, axis=1)
+    med = np.nanmedian(d); mad = np.nanmedian(np.abs(d - med)) + 1e-9
+    bad = ~np.isnan(d) & (np.abs(d - med) > max(0.03, 5 * mad))   # >30mm or 5*MAD
+    toe[bad] = np.nan; heel[bad] = np.nan
+    print(f"Rigid-pair filter: kept toe-heel {med*1000:.0f} mm, dropped {int(bad.sum())} outlier frames")
+
+    # World frame (Z = height above floor) if the transform has been computed.
+    wt_path = Path("calibration/world_transform.npz")
+    if wt_path.exists():
+        W = WorldTransform.load(wt_path)
+        toe = W.apply(toe); heel = W.apply(heel)
+        frame_label = "world frame (Z = height above floor)"
+    else:
+        frame_label = "camera-1 frame (Z = depth) - no world_transform.npz"
+
     fps = 1/np.median(np.diff(grid))
     toe_c = clean_trajectory(toe, fps); heel_c = clean_trajectory(heel, fps)
+    print(f"Output: {frame_label}")
     nok = np.mean(~np.isnan(toe_c[:, 0]))
     print(f"Foot trajectory: {int(nok*len(grid))}/{len(grid)} frames, toe {nok*100:.0f}% reconstructed")
 
