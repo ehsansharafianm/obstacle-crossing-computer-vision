@@ -17,9 +17,12 @@ import numpy as np
 
 # HSV (low, high) ranges per colour; red wraps hue so it has two ranges.
 COLOR_RANGES = {
-    "red":    [((0, 100, 100), (8, 255, 255)), ((172, 100, 100), (180, 255, 255))],
+    # Red marker (hue ~2). Looser hue for motion; skin (hue ~8) is rejected in
+    # detect_foot by the "red nearest the green marker" rule, not by hue alone.
+    "red":    [((0, 90, 80), (10, 255, 255)), ((172, 90, 80), (180, 255, 255))],
     "teal":   [((78, 50, 100), (98, 255, 255))],
-    "green":  [((40, 60, 60), (75, 255, 255))],
+    # Foot green marker reads ~hue 82; olive shorts ~hue 101, excluded by upper bound.
+    "green":  [((45, 70, 55), (99, 255, 255))],
     "yellow": [((22, 90, 120), (35, 255, 255))],
     "blue":   [((100, 90, 80), (120, 255, 255))],
     "orange": [((9, 120, 120), (20, 255, 255))],
@@ -75,6 +78,27 @@ def detect_wand(frame, max_area=800):
                 bd = spread
                 best = (np.array([p[:2] for p in rr]), np.array([p[:2] for p in tt]))
     return best
+
+
+def detect_foot(frame, max_area=1500, near_px=500):
+    """Detect green (toe) + red (heel) foot markers.
+
+    Green is taken as the largest green blob. Red is the red blob NEAREST the
+    green marker — both sit on the same shoe, so this rejects skin-toned red
+    blobs up the bare leg. Returns (green_xy, red_xy); either may be None.
+    """
+    hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+    greens = detect_blobs(color_mask(hsv, "green"), max_area=max_area)
+    reds = detect_blobs(color_mask(hsv, "red"), max_area=max_area)
+    g = max(greens, key=lambda b: b[2])[:2] if greens else None
+    r = None
+    if reds:
+        if g is not None:
+            near = [b for b in reds if np.hypot(b[0] - g[0], b[1] - g[1]) <= near_px]
+            r = (max(near, key=lambda b: b[2])[:2] if near else None)
+        else:
+            r = max(reds, key=lambda b: b[2])[:2]
+    return g, r
 
 
 @dataclass
