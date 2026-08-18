@@ -78,9 +78,10 @@ def _board_corners_3d(cam1_video, cam2_video, spec, intr1, intr2, extr,
         c2, i2 = detect_board(cv2.cvtColor(im2, cv2.COLOR_BGR2GRAY), det)
         if i1 is None or i2 is None:
             continue
+        c1 = np.asarray(c1).reshape(-1, 2); c2 = np.asarray(c2).reshape(-1, 2)
         i1 = i1.flatten(); i2 = i2.flatten()
-        m1 = {int(v): c1[k, 0] for k, v in enumerate(i1)}
-        m2 = {int(v): c2[k, 0] for k, v in enumerate(i2)}
+        m1 = {int(v): c1[k] for k, v in enumerate(i1)}
+        m2 = {int(v): c2[k] for k, v in enumerate(i2)}
         shared = np.intersect1d(i1, i2)
         if len(shared) < 6:
             continue
