@@ -18,6 +18,7 @@ Obsidian vault for the camera + IMU obstacle-crossing study. Code lives in
 - [[automated-pipeline]] — architecture for the turnkey per-participant system
 
 ### Protocols (run these in the lab)
+- [[session-workflow]] — **the per-session checklist: calibrate → lock → record → process**
 - [[intrinsic-calibration-capture]] — how to film the board so the lens estimate is well-constrained
 - [[extrinsic-calibration-capture]] — filming both cameras together to get their relative positions
 - [[calibration-accuracy-check]] — known-length rod reconstruction accuracy test

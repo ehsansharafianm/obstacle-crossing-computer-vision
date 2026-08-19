@@ -1,0 +1,112 @@
+"""Build (or rebuild) the camera calibration for one session: stereo extrinsics
++ world-frame transform, from four clips in calibration/sessions/<id>/.
+
+Consumer tripods drift, so recalibrate extrinsics + world at the START of each
+recording session, then record all tests without moving the cameras. Intrinsics
+(per-lens) are NOT redone here -- they don't depend on camera position, only on
+zoom/lens, which you keep at 1x.
+
+Inputs (in calibration/sessions/<id>/):
+  cam1_ext.MOV,   cam2_ext.MOV     board held STATIC at ~15-20 poses (both cameras)
+  cam1_floor.MOV, cam2_floor.MOV   board flat on the floor (defines the world frame)
+
+Outputs: writes stereo_extrinsics.npz + world_transform.npz into the session
+folder AND promotes them to the active calibration/ that build_foot_trajectory
+reads -- so every test recorded in this session (cameras unmoved) uses it.
+
+Usage (from code/):  python scripts/build_calibration.py 4      (-> calib04)
+"""
+import shutil
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))              # scripts/
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))  # src/
+
+import numpy as np  # noqa: E402
+from occ.calibration import BoardSpec, Intrinsics  # noqa: E402
+from occ.stereo import StereoExtrinsics  # noqa: E402
+from occ.worldframe import compute_world_transform  # noqa: E402
+from run_stereo_ransac import solve_extrinsics  # noqa: E402
+
+SESS_ROOT = Path("calibration/sessions")
+ACTIVE = Path("calibration")
+VIDEO_EXTS = (".MOV", ".mov", ".MP4", ".mp4", ".avi", ".AVI")
+
+
+def resolve_id(raw):
+    s = str(raw).strip()
+    return f"calib{int(s):02d}" if s.isdigit() else s
+
+
+def find_video(folder, *prefixes):
+    for pre in prefixes:
+        hits = sorted(p for p in folder.glob(pre + "*")
+                      if p.is_file() and p.suffix in VIDEO_EXTS)
+        if hits:
+            return hits[0]
+    return None
+
+
+def main():
+    if len(sys.argv) < 2:
+        raise SystemExit("usage: build_calibration.py <id>   (e.g. 4  or  calib04)")
+    cid = resolve_id(sys.argv[1])
+    folder = SESS_ROOT / cid
+    folder.mkdir(parents=True, exist_ok=True)
+
+    c1e = find_video(folder, "cam1_ext", "cam1_extrins")
+    c2e = find_video(folder, "cam2_ext", "cam2_extrins")
+    c1f = find_video(folder, "cam1_floor")
+    c2f = find_video(folder, "cam2_floor")
+    missing = [n for n, v in [("cam1_ext", c1e), ("cam2_ext", c2e),
+                              ("cam1_floor", c1f), ("cam2_floor", c2f)] if v is None]
+    if missing:
+        raise SystemExit(
+            f"\n[{cid}] needs 4 clips in:\n    {folder.resolve()}\n"
+            f"  missing: {', '.join(missing)}\n"
+            f"    cam1_ext / cam2_ext      = board held STATIC at ~15-20 poses (both cameras)\n"
+            f"    cam1_floor / cam2_floor  = board flat on the floor (world frame)\n"
+            f"  then re-run:  python scripts/build_calibration.py {cid}\n")
+
+    log = [f"Calibration session: {cid}", ""]
+
+    def say(m=""):
+        print(m); log.append(m)
+
+    say(f"[{cid}]  extrinsics: {c1e.name} + {c2e.name}   floor: {c1f.name} + {c2f.name}")
+
+    # --- 1. Stereo extrinsics (relative camera pose) --------------------------
+    say("\n-- Stereo extrinsics --")
+    extr, rms, npairs = solve_extrinsics(
+        c1e, c2e, out=str(folder / "stereo_extrinsics.npz"), verbose=True)
+    say(f"pairs used = {npairs}   RMS = {rms:.3f} px   baseline = {extr.baseline_m():.3f} m")
+    if rms >= 1.5:
+        say("WARNING: RMS >= 1.5 px -- extrinsics may be poor "
+            "(board not held static, or too few distinct poses?)")
+    # Promote extrinsics to active BEFORE the world step (world needs it).
+    shutil.copy(folder / "stereo_extrinsics.npz", ACTIVE / "stereo_extrinsics.npz")
+
+    # --- 2. World-frame transform (floor plane, Z = up) ----------------------
+    say("\n-- World frame (floor) --")
+    spec = BoardSpec.from_measured_json("calibration/board_measured_large.json")
+    intr1 = Intrinsics.load("calibration/intrinsics_cam1.npz")
+    intr2 = Intrinsics.load("calibration/intrinsics_cam2.npz")
+    extr_active = StereoExtrinsics.load(ACTIVE / "stereo_extrinsics.npz")
+    W = compute_world_transform(str(c1f), str(c2f), spec, intr1, intr2, extr_active)
+    cam_h = (W.R @ np.zeros(3) + W.t)[2] * 1000
+    say(f"floor-flatness residual = {W.rms_mm:.2f} mm   camera height = {cam_h:.0f} mm")
+    if W.rms_mm >= 3.0:
+        say("WARNING: floor residual >= 3 mm -- floor board not flat / not well seen?")
+    W.save(folder / "world_transform.npz")
+    shutil.copy(folder / "world_transform.npz", ACTIVE / "world_transform.npz")
+
+    say("\nActive calibration updated (calibration/stereo_extrinsics.npz + world_transform.npz).")
+    say("Every test recorded in THIS session (cameras unmoved) now uses this calibration.")
+
+    (folder / "calib_run.txt").write_text("\n".join(log) + "\n", encoding="utf-8")
+    print(f"\nSaved session copy + run log -> {folder}")
+
+
+if __name__ == "__main__":
+    main()
