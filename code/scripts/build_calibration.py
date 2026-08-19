@@ -59,10 +59,26 @@ def find_video(folder, *keys):
     return None
 
 
+BOARDS = {
+    "normal": "calibration/board_measured.json",       # ~28.5 mm squares (~23x17 cm)
+    "small":  "calibration/board_measured.json",
+    "large":  "calibration/board_measured_large.json",  # ~62.9 mm squares (~50x38 cm)
+    "big":    "calibration/board_measured_large.json",
+}
+
+
 def main():
     if len(sys.argv) < 2:
-        raise SystemExit("usage: build_calibration.py <id>   (e.g. 4  or  calib04)")
+        raise SystemExit("usage: build_calibration.py <id> [board]   "
+                         "(e.g. 4  or  4 normal  or  4 large)")
     cid = resolve_id(sys.argv[1])
+    # Which calibration board was filmed. Default large (the tiled board) for
+    # back-compat; pass 'normal' when the cameras are close enough to use the
+    # smaller board. Both are the same 8x6 DICT_5X5_100 pattern; only size differs.
+    board_arg = (sys.argv[2].lower() if len(sys.argv) > 2 else "large")
+    board_json = BOARDS.get(board_arg, board_arg)      # allow an explicit path too
+    if not Path(board_json).exists():
+        raise SystemExit(f"board spec not found: {board_json}  (use 'normal' or 'large')")
     folder = SESS_ROOT / cid
     folder.mkdir(parents=True, exist_ok=True)
 
@@ -86,11 +102,13 @@ def main():
         print(m); log.append(m)
 
     say(f"[{cid}]  extrinsics: {c1e.name} + {c2e.name}   floor: {c1f.name} + {c2f.name}")
+    say(f"  board: {board_json}")
 
     # --- 1. Stereo extrinsics (relative camera pose) --------------------------
     say("\n-- Stereo extrinsics --")
     extr, rms, npairs = solve_extrinsics(
-        c1e, c2e, out=str(folder / "stereo_extrinsics.npz"), verbose=True)
+        c1e, c2e, board_json=board_json,
+        out=str(folder / "stereo_extrinsics.npz"), verbose=True)
     say(f"pairs used = {npairs}   RMS = {rms:.3f} px   baseline = {extr.baseline_m():.3f} m")
     if rms >= 1.5:
         say("WARNING: RMS >= 1.5 px -- extrinsics may be poor "
@@ -100,7 +118,7 @@ def main():
 
     # --- 2. World-frame transform (floor plane, Z = up) ----------------------
     say("\n-- World frame (floor) --")
-    spec = BoardSpec.from_measured_json("calibration/board_measured_large.json")
+    spec = BoardSpec.from_measured_json(board_json)
     intr1 = Intrinsics.load("calibration/intrinsics_cam1.npz")
     intr2 = Intrinsics.load("calibration/intrinsics_cam2.npz")
     extr_active = StereoExtrinsics.load(ACTIVE / "stereo_extrinsics.npz")
