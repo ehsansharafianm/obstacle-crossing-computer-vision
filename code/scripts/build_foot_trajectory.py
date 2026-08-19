@@ -137,8 +137,8 @@ def main():
 
     say(f"Tracking {cam1.name}..."); ts1, G1, R1 = track_foot(cam1)
     say(f"Tracking {cam2.name}..."); ts2, G2, R2 = track_foot(cam2)
-    say(f"  cam1 green {100*np.mean(~np.isnan(G1[:,0])):.0f}%  red {100*np.mean(~np.isnan(R1[:,0])):.0f}%  |  "
-        f"cam2 green {100*np.mean(~np.isnan(G2[:,0])):.0f}%  red {100*np.mean(~np.isnan(R2[:,0])):.0f}%")
+    say(f"  cam1 toe {100*np.mean(~np.isnan(G1[:,0])):.0f}%  heel {100*np.mean(~np.isnan(R1[:,0])):.0f}%  |  "
+        f"cam2 toe {100*np.mean(~np.isnan(G2[:,0])):.0f}%  heel {100*np.mean(~np.isnan(R2[:,0])):.0f}%")
 
     dur = min(ts1[-1], ts2[-1])
     sample = ts1[(ts1 > 1) & (ts1 < ts1[-1]-1)][::20]

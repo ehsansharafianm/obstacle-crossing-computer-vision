@@ -89,39 +89,44 @@ def detect_wand(frame, max_area=800):
     return best
 
 
-def detect_foot(frame, max_area=20000, near_px=500):
-    """Detect the purple (toe) + red (heel) spherical foot markers.
+# Which COLOR_RANGES entry is on each foot marker. Change these two lines when
+# the marker colours change (test06 onward: purple toe + green heel).
+FOOT_TOE_COLOR = "purple"
+FOOT_HEEL_COLOR = "green"
 
-    Both markers sit on the same shoe, so we return the purple/red pair that are
-    CLOSEST together. That mutual-proximity rule rejects purple-ish background
-    (blue couch/tape — no red heel nearby) and skin-toned red up the leg (no
-    purple toe nearby). If only one colour is visible (the other occluded), the
-    largest blob of the visible colour is returned. Returns (toe_xy, heel_xy);
-    either may be None.
+
+def detect_foot(frame, max_area=20000, near_px=500):
+    """Detect the toe + heel spherical foot markers (colours per FOOT_*_COLOR).
+
+    Both markers sit on the same shoe, so we return the toe/heel pair that are
+    CLOSEST together. That mutual-proximity rule rejects same-colour background
+    or clutter that isn't near the other marker. If only one colour is visible
+    (the other occluded), the largest blob of the visible colour is returned.
+    Returns (toe_xy, heel_xy); either may be None.
 
     max_area is generous (20000 px): the marker is the largest same-colour blob
-    and there is no large purple/red background, so when the foot is CLOSE to a
+    and there is no large matching background, so when the foot is CLOSE to a
     camera the (correctly large) blob must not be rejected — that would drop
     exactly the close-up frames where accuracy is best.
     """
     hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
-    purples = detect_blobs(color_mask(hsv, "purple"), max_area=max_area)
-    reds = detect_blobs(color_mask(hsv, "red_marker"), max_area=max_area)
-    if not purples and not reds:
+    toes = detect_blobs(color_mask(hsv, FOOT_TOE_COLOR), max_area=max_area)
+    heels = detect_blobs(color_mask(hsv, FOOT_HEEL_COLOR), max_area=max_area)
+    if not toes and not heels:
         return None, None
-    if not reds:                                    # heel occluded -> toe only
-        return max(purples, key=lambda b: b[2])[:2], None
-    if not purples:                                 # toe occluded -> heel only
-        return None, max(reds, key=lambda b: b[2])[:2]
-    # closest purple-red pair = the two markers on the shoe
+    if not heels:                                   # heel occluded -> toe only
+        return max(toes, key=lambda b: b[2])[:2], None
+    if not toes:                                     # toe occluded -> heel only
+        return None, max(heels, key=lambda b: b[2])[:2]
+    # closest toe-heel pair = the two markers on the shoe
     best, bd = None, 1e9
-    for p in purples:
-        for r in reds:
+    for p in toes:
+        for r in heels:
             d = np.hypot(p[0] - r[0], p[1] - r[1])
             if d < bd:
                 bd, best = d, (p, r)
     if bd > near_px:                                # no pair close -> trust largest each
-        return max(purples, key=lambda b: b[2])[:2], max(reds, key=lambda b: b[2])[:2]
+        return max(toes, key=lambda b: b[2])[:2], max(heels, key=lambda b: b[2])[:2]
     p, r = best
     return p[:2], r[:2]
 

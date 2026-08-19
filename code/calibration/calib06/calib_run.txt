@@ -1,0 +1,13 @@
+Calibration session: calib06
+
+[calib06]  extrinsics: Cam1-ext.MOV + Cam2-ext.MOV   floor: Cam1-floor.MOV + Cam2-floor.MOV
+  board: calibration/board_measured_large.json
+
+-- Stereo extrinsics --
+pairs used = 25   RMS = 0.920 px   baseline = 1.858 m
+
+-- World frame (floor) --
+floor-flatness residual = 0.65 mm   camera height = 986 mm
+
+Active calibration updated (calibration/stereo_extrinsics.npz + world_transform.npz).
+Every test recorded in THIS session (cameras unmoved) now uses this calibration.
