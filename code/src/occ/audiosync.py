@@ -70,30 +70,21 @@ def clap_offset(video1, video2, sr=16000, window=25.0):
     builder uses (it samples cam2 at ``grid - off``). Equivalently
     ``off = t_clap_cam1 - t_clap_cam2``.
 
-    The clap is found in the opening `window` seconds of each clip. Two estimates
-    are computed and required to agree: the loudest-transient peak (``off_peak``)
-    and the envelope cross-correlation (``off_xc``, sub-frame precision). Their
-    agreement, scaled by how isolated the clap is above the ambient baseline,
-    is the confidence -- a clean clap gives tens+, noise gives ~1. Returns
-    (None, 0.0) if audio can't be read (no ffmpeg / no audio track).
+    The clap is the loudest, most isolated transient in each clip's opening
+    `window` seconds; the offset is the difference of the two peak times, located
+    to ~1 audio sample (sub-millisecond -- far finer than a 1/240 s video frame).
+    Confidence is how far each peak stands above its ambient baseline (a real clap
+    is many x; ambient noise ~1). We do NOT global-cross-correlate the envelopes:
+    with several loud sounds in a take (clap + box-drop + footsteps) that locks
+    onto the wrong alignment. Returns (None, 0.0) if audio can't be read.
     """
-    from scipy.signal import fftconvolve
     x1 = _extract_audio(video1, sr, dur=window)
     x2 = _extract_audio(video2, sr, dur=window)
     if x1 is None or x2 is None:
         return None, 0.0
     e1 = _envelope(x1, sr)
     e2 = _envelope(x2, sr)
-    n = min(len(e1), len(e2))
-    e1, e2 = e1[:n], e2[:n]
-
-    # (a) loudest-transient peak in each clip
     k1, k2 = int(np.argmax(e1)), int(np.argmax(e2))
-    off_peak = (k1 - k2) / sr
-
-    # (b) cross-correlation of the two envelopes (sub-frame)
-    c = fftconvolve(e1, e2[::-1], mode="full")
-    off_xc = (int(np.argmax(c)) - (n - 1)) / sr
 
     # isolation: how far each clap peak stands above its own ambient level
     # (mean envelope outside a +-0.3 s guard around the peak).
@@ -101,10 +92,8 @@ def clap_offset(video1, video2, sr=16000, window=25.0):
         g = int(0.3 * sr)
         mask = np.ones(len(e), bool)
         mask[max(0, k - g):k + g] = False
-        amb = e[mask].mean() + 1e-9
-        return float(e[k] / amb)
+        return float(e[k] / (e[mask].mean() + 1e-9))
 
-    iso = min(isolation(e1, k1), isolation(e2, k2))
-    agree = abs(off_peak - off_xc) < 0.03           # 30 ms
-    conf = iso if agree else 0.0
-    return off_xc, conf
+    off = (k1 - k2) / sr            # cam1 time t <-> cam2 time (t - off)
+    conf = min(isolation(e1, k1), isolation(e2, k2))
+    return off, conf

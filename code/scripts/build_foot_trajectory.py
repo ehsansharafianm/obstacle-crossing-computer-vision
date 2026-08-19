@@ -204,6 +204,17 @@ def main():
         W = WorldTransform.load(wt_path)
         toe = W.apply(toe); heel = W.apply(heel)
         frame_label = "world frame (Z = height above floor)"
+        # Physical-plausibility gate: a foot marker can't be well below the floor,
+        # metres up, or metres outside the capture zone. Drops gross mis-triangs
+        # (e.g. a marker matched to a wrong blob) that the rigid-pair test misses
+        # when both markers err together. Units: metres, world frame.
+        nbad = 0
+        for arr in (toe, heel):
+            bad = (~np.isnan(arr[:, 2]) &
+                   ((arr[:, 2] < -0.10) | (arr[:, 2] > 1.50) |
+                    (np.abs(arr[:, 0]) > 3.0) | (np.abs(arr[:, 1]) > 3.0)))
+            arr[bad] = np.nan; nbad += int(bad.sum())
+        say(f"Plausibility gate: dropped {nbad} out-of-bounds marker points")
     else:
         frame_label = "camera-1 frame (Z = depth) - no world_transform.npz"
 

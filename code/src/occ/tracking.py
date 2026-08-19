@@ -29,6 +29,13 @@ COLOR_RANGES = {
     "blue":   [((100, 90, 80), (120, 255, 255))],
     "orange": [((9, 120, 120), (20, 255, 255))],
     "pink":   [((145, 60, 120), (170, 255, 255))],
+    # Foot markers (spherical). Purple toe reads ~hue 124, sat 130+ under the lab
+    # lights; sat>=65 & hue>=114 rejects the low-saturation blue couch (~hue 110,
+    # sat 55). Red heel ball reads hue ~176 (very saturated); restricting to the
+    # HIGH-hue side only (168-180) excludes skin/legs (hue ~5) entirely, which the
+    # looser "red" above (and a 0-8 branch) would wrongly pick up.
+    "purple":     [((114, 65, 45), (134, 255, 255))],
+    "red_marker": [((168, 130, 60), (180, 255, 255))],
 }
 
 
@@ -83,29 +90,40 @@ def detect_wand(frame, max_area=800):
 
 
 def detect_foot(frame, max_area=20000, near_px=500):
-    """Detect green (toe) + red (heel) foot markers.
+    """Detect the purple (toe) + red (heel) spherical foot markers.
 
-    Green is taken as the largest green blob. Red is the red blob NEAREST the
-    green marker — both sit on the same shoe, so this rejects skin-toned red
-    blobs up the bare leg. Returns (green_xy, red_xy); either may be None.
+    Both markers sit on the same shoe, so we return the purple/red pair that are
+    CLOSEST together. That mutual-proximity rule rejects purple-ish background
+    (blue couch/tape — no red heel nearby) and skin-toned red up the leg (no
+    purple toe nearby). If only one colour is visible (the other occluded), the
+    largest blob of the visible colour is returned. Returns (toe_xy, heel_xy);
+    either may be None.
 
     max_area is generous (20000 px): the marker is the largest same-colour blob
-    and there is no large green/red background in this setup, so when the foot is
-    CLOSE to a camera the (correctly large) blob must not be rejected. A small
-    cap here silently drops exactly the close-up frames where accuracy is best.
+    and there is no large purple/red background, so when the foot is CLOSE to a
+    camera the (correctly large) blob must not be rejected — that would drop
+    exactly the close-up frames where accuracy is best.
     """
     hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
-    greens = detect_blobs(color_mask(hsv, "green"), max_area=max_area)
-    reds = detect_blobs(color_mask(hsv, "red"), max_area=max_area)
-    g = max(greens, key=lambda b: b[2])[:2] if greens else None
-    r = None
-    if reds and g is not None:
-        # Only trust a red blob near the green toe (same foot) — this rejects
-        # red clutter/reflections in frames where the foot is absent or the toe
-        # marker is not visible.
-        near = [b for b in reds if np.hypot(b[0] - g[0], b[1] - g[1]) <= near_px]
-        r = (max(near, key=lambda b: b[2])[:2] if near else None)
-    return g, r
+    purples = detect_blobs(color_mask(hsv, "purple"), max_area=max_area)
+    reds = detect_blobs(color_mask(hsv, "red_marker"), max_area=max_area)
+    if not purples and not reds:
+        return None, None
+    if not reds:                                    # heel occluded -> toe only
+        return max(purples, key=lambda b: b[2])[:2], None
+    if not purples:                                 # toe occluded -> heel only
+        return None, max(reds, key=lambda b: b[2])[:2]
+    # closest purple-red pair = the two markers on the shoe
+    best, bd = None, 1e9
+    for p in purples:
+        for r in reds:
+            d = np.hypot(p[0] - r[0], p[1] - r[1])
+            if d < bd:
+                bd, best = d, (p, r)
+    if bd > near_px:                                # no pair close -> trust largest each
+        return max(purples, key=lambda b: b[2])[:2], max(reds, key=lambda b: b[2])[:2]
+    p, r = best
+    return p[:2], r[:2]
 
 
 @dataclass
