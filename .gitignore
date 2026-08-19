@@ -11,6 +11,9 @@
 __pycache__/
 *.pyc
 
+# --- Node (slide-deck builder) --------------------------------------------
+node_modules/
+
 # --- Raw inputs & regenerable intermediates (large; not versioned) ---------
 # raw clips + extracted calibration frame dumps
 code/data/

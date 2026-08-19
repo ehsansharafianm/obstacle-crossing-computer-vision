@@ -5,8 +5,10 @@ What we've built and proven, in order. See [[code-structure]] for the code,
 
 ## Headline achievements
 - **Two consumer iPads → a validated ~2 mm 3D motion-capture system.**
-- Full chain proven end-to-end: **calibration → tracking → sync → 3D → world-frame height**.
-- The hardest technical risk (mm-accuracy from consumer cameras) is **retired**.
+- **Clean 3D foot-clearance trajectory on a real crossing** (test06): clearance arcs +
+  17 mm rigid-shoe consistency. The full chain works: calibrate → clap → track → 3D → clearance.
+- Turnkey per-session workflow: `run_calib N` / `run_test N` → CSV + plot.
+- The hardest technical risks (mm-accuracy from consumer cameras; clean foot tracking) are **retired**.
 
 ## The journey, step by step
 
@@ -51,12 +53,24 @@ What we've built and proven, in order. See [[code-structure]] for the code,
 - Validated: floor-flatness residual **0.47 mm**, computed **camera height 1011 mm** (matches the
   ~100 cm physical setup). Rigid transform → the ~2 mm accuracy is preserved.
 
-### 8. Foot pilot (green toe + red heel)  ⚙️ in progress
-- End-to-end on a real foot: detect → track → sync → triangulate → **world-frame height** → CSV.
-- Added **rigid-pair outlier rejection** (drop frames whose toe-heel distance is an outlier).
-- **Bigger markers** (colored plastic) markedly improved detection.
-- Remaining quality work is recording-side: bigger/rounder markers, a **clap** for precise sync,
-  and slower controlled motion → smooth, physically-sane height curves.
+### 8. Foot clearance trajectory (purple toe + green heel)  ✅ WORKS (test06, 2026-08-19)
+- End-to-end on a real foot: detect → track → **clap-sync** → triangulate → **world-frame height** → CSV.
+- **Clean result:** clear clearance arcs (toe/heel rise ~300–500 mm over each crossing,
+  ~60 mm baseline) and a **17 mm** toe–heel rigid-shoe std (= shoe length, 294 mm).
+- The three fixes that got there (see [[2026-08-19]] and [[foot-marker-recording-protocol]]):
+  1. **Spherical, uniquely-coloured markers** — purple toe + green heel (red failed:
+     the maroon couch + box label are also red → false heels).
+  2. **Cameras moved closer** → markers big in frame → the fast-crossing 2D jitter collapses
+     (toe–heel std 67 → 17 mm). Move ≠ zoom; recalibrate after moving.
+  3. **One-clap audio sync** (`occ/audiosync.py`, peak-based) — cam sync to the ms, off-frame.
+- Cleaning: **plausibility gate** (drop impossible 3D) + rigid-pair outlier rejection;
+  honest empty gaps where the foot is out of both views.
+- Remaining: **coverage** (~50%, raise with continuous crossings) and occlusion (3rd camera later).
+
+### 9. Systematic per-session pipeline  ✅
+- `run_calib N` (calibration session, [[session-workflow]]) and `run_test N` (foot test) —
+  drop clips in a folder, one command → CSV + plot + run log. Calibration is validated
+  per session (calib06: 0.92 px, floor 0.65 mm, camera height 986 mm).
 
 ## Deliverables produced
 - **MATLAB viewer** `matlab/plot_trajectory.m` — 3D + X/Y/Z-vs-time, per-marker toggles,
