@@ -2,7 +2,8 @@ function plot_trajectory(csvfile)
 % PLOT_TRAJECTORY  Interactive 3D + X/Y/Z-vs-time plot of marker trajectories.
 %
 %   plot_trajectory                 % opens a file picker
-%   plot_trajectory('foot_trajectory.csv')
+%   plot_trajectory('test01')       % -> code/experiments/test01/test01_trajectory.csv
+%   plot_trajectory('foot_trajectory.csv')      % explicit file / full path
 %
 % CSV columns (exported by the obstacle-crossing pipeline):
 %   time_s, <marker>_x_mm, <marker>_y_mm, <marker>_z_mm, ...
@@ -18,6 +19,17 @@ function plot_trajectory(csvfile)
         [f, p] = uigetfile('*.csv', 'Select a trajectory CSV');
         if isequal(f, 0), return; end
         csvfile = fullfile(p, f);
+    elseif ~exist(csvfile, 'file') && ~endsWith(lower(csvfile), '.csv')
+        % A bare test id (e.g. 'test01') -> code/experiments/<id>/<id>_trajectory.csv,
+        % resolved relative to this .m file so it works from any MATLAB cwd.
+        id   = csvfile;
+        root = fileparts(fileparts(mfilename('fullpath')));   % repo root
+        cand = fullfile(root, 'code', 'experiments', id, [id '_trajectory.csv']);
+        if exist(cand, 'file')
+            csvfile = cand;
+        else
+            error('No CSV for test "%s". Looked for:\n  %s', id, cand);
+        end
     end
 
     % --- close any previous window opened by this function ---

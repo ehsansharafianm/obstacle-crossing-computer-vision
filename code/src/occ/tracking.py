@@ -82,12 +82,17 @@ def detect_wand(frame, max_area=800):
     return best
 
 
-def detect_foot(frame, max_area=1500, near_px=500):
+def detect_foot(frame, max_area=20000, near_px=500):
     """Detect green (toe) + red (heel) foot markers.
 
     Green is taken as the largest green blob. Red is the red blob NEAREST the
     green marker — both sit on the same shoe, so this rejects skin-toned red
     blobs up the bare leg. Returns (green_xy, red_xy); either may be None.
+
+    max_area is generous (20000 px): the marker is the largest same-colour blob
+    and there is no large green/red background in this setup, so when the foot is
+    CLOSE to a camera the (correctly large) blob must not be rejected. A small
+    cap here silently drops exactly the close-up frames where accuracy is best.
     """
     hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
     greens = detect_blobs(color_mask(hsv, "green"), max_area=max_area)

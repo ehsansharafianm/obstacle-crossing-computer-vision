@@ -1,31 +1,21 @@
-# Data & experiment outputs (large / not for version control)
-code/data/
-code/results/
-code/calibration/*.npz
-code/calibration/*.mp4
-*.mp4
+# --- Video files (large; keep out of git) ---------------------------------
+*.MOV
 *.mov
+*.MP4
+*.mp4
 *.avi
+*.AVI
 
-# Python
-__pycache__/
-*.py[cod]
+# --- Python ---------------------------------------------------------------
 .venv/
-venv/
-env/
-*.egg-info/
-.pytest_cache/
-.ipynb_checkpoints/
+__pycache__/
+*.pyc
 
-# Claude Code session dir
-.claude/
+# --- Raw inputs & regenerable intermediates (large; not versioned) ---------
+# raw clips + extracted calibration frame dumps
+code/data/
+# old flat scratch results (superseded by experiments/)
+code/results/
 
-# OS / editor
-.DS_Store
-Thumbs.db
-.vscode/
-.idea/
-
-# Obsidian workspace/cache (keep notes, ignore local UI state)
-docs/.obsidian/workspace*.json
-docs/.obsidian/cache
+# --- Keep per-test RESULTS (small) but never the raw videos ----------------
+# CSV / PNG / run.txt under experiments/ are intentionally NOT ignored.

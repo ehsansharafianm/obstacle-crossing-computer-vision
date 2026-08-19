@@ -1,0 +1,15 @@
+Test: test03
+cam1: experiments\test03\cam1.MOV
+cam2: experiments\test03\cam2.MOV
+
+[test03]  cam1=cam1.MOV  cam2=cam2.MOV
+Tracking cam1.MOV...
+Tracking cam2.MOV...
+  cam1 green 57%  red 57%  |  cam2 green 56%  red 56%
+Sync (audio clap): cam2 + -4.008s = cam1  (conf 44)  |  toe-heel 340.3 mm, std 67.3 mm (522 frames)
+Rigid-pair filter: kept toe-heel 351 mm, dropped 108 outlier frames
+Output: world frame (Z = height above floor)
+Foot trajectory: 2925/4916 frames, toe 60% reconstructed
+Saved:
+  experiments\test03\test03_trajectory.csv
+  experiments\test03\test03_trajectory.png
