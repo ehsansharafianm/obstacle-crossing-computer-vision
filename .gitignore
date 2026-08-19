@@ -14,8 +14,8 @@ __pycache__/
 # --- Raw inputs & regenerable intermediates (large; not versioned) ---------
 # raw clips + extracted calibration frame dumps
 code/data/
-# old flat scratch results (superseded by experiments/)
+# old flat scratch results (superseded by sessions/)
 code/results/
 
-# --- Keep per-test RESULTS (small) but never the raw videos ----------------
-# CSV / PNG / run.txt under experiments/ are intentionally NOT ignored.
+# --- Keep per-session RESULTS (small) but never the raw videos -------------
+# CSV / PNG / run.txt under sessions/ and calibration/ are intentionally kept.

@@ -1,7 +1,8 @@
-# experiments/ — one folder per test
+# sessions/ — one folder per test
 
 Each test/crossing lives in its own folder, `testNN`. Everything about that
-test (the two input videos and every output) stays together.
+test (the two input videos and every output) stays together. (Calibration
+sessions are the sibling `calibration/calibNN/` folders — see `calibration/README.md`.)
 
 ## How to run a test
 
@@ -9,8 +10,8 @@ test (the two input videos and every output) stays together.
    the test, renamed `cam1` and `cam2`:
 
    ```
-   experiments/test01/cam1.MOV
-   experiments/test01/cam2.MOV
+   sessions/test01/cam1.MOV
+   sessions/test01/cam2.MOV
    ```
 
    (Don't have the folder yet? Just run step 2 with a new id — it creates the
@@ -19,10 +20,11 @@ test (the two input videos and every output) stays together.
 2. **Process** it with one command (run from `code/`):
 
    ```bash
-   .venv\Scripts\python.exe scripts\build_foot_trajectory.py test01
+   run_test 1
    ```
 
-   A bare number also works: `... build_foot_trajectory.py 1` → `test01`.
+   (or `.venv\Scripts\python.exe scripts\build_foot_trajectory.py test01`).
+   A bare number `1` → `test01`.
 
 3. **View** it in MATLAB (from the `matlab/` folder):
 
@@ -43,8 +45,8 @@ test (the two input videos and every output) stays together.
 
 - The **videos are git-ignored** (they're large); the small CSV/PNG/run.txt are
   kept so each test's result is versioned.
-- Calibration (`calibration/*.npz`) is shared across all tests — do **not**
-  move the cameras between tests, or you must re-run the extrinsics + world
-  transform.
+- The **active calibration** (`calibration/*.npz`) is shared across all tests in a
+  session — do **not** move the cameras, or re-run `run_calib` first (see
+  `calibration/README.md`).
 - Naming is up to you: `test01`, `P03_obstacle2`, `pilot_clap` all work — the id
   becomes the folder name and the prefix on every output file.

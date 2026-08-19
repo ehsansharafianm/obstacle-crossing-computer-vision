@@ -6,7 +6,7 @@ REM  Use it either way:
 REM    * Double-click this file  -> it asks for the test number, you type 4.
 REM    * From a terminal:  run_test 4        (or:  run_test test04)
 REM
-REM  A bare number like 4 becomes test04. Outputs land in experiments\test04\.
+REM  A bare number like 4 becomes test04. Outputs land in sessions\test04\.
 REM  (Put the two clips in that folder named cam1 and cam2 first; if the folder
 REM   is missing the script creates it and tells you what to drop in.)
 REM ---------------------------------------------------------------------------

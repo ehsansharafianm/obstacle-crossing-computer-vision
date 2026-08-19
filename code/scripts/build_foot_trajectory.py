@@ -23,7 +23,7 @@ from occ.worldframe import WorldTransform  # noqa: E402
 from occ.audiosync import clap_offset  # noqa: E402
 
 
-EXP_ROOT = Path("experiments")
+EXP_ROOT = Path("sessions")            # test/recording sessions: sessions/testNN/
 VIDEO_EXTS = (".MOV", ".mov", ".MP4", ".mp4", ".avi", ".AVI")
 
 
@@ -36,7 +36,7 @@ def resolve_test_id(raw):
 
 
 def find_cam_video(folder, cam):
-    """Find experiments/<id>/cam1.* (or cam2.*); prefer real video extensions."""
+    """Find sessions/<id>/cam1.* (or cam2.*); prefer real video extensions."""
     hits = sorted(p for p in folder.glob(f"{cam}*") if p.is_file())
     for ext in VIDEO_EXTS:
         for p in hits:
@@ -96,7 +96,7 @@ def main():
         description="Foot trajectory -> per-test world-frame CSV + plot.",
         epilog="Example: python scripts/build_foot_trajectory.py test01")
     ap.add_argument("test", help="test id (e.g. test01, or a bare number: 1 -> test01). "
-                                 "Reads experiments/<id>/cam1.* + cam2.*, writes outputs there.")
+                                 "Reads sessions/<id>/cam1.* + cam2.*, writes outputs there.")
     ap.add_argument("--cam1", default=None, help="override: path to camera-1 video")
     ap.add_argument("--cam2", default=None, help="override: path to camera-2 video")
     args = ap.parse_args()
@@ -115,7 +115,7 @@ def main():
             f"(e.g. cam1.MOV, cam2.MOV), then re-run:\n"
             f"    python scripts/build_foot_trajectory.py {test_id}\n")
 
-    # Every print also goes to experiments/<id>/<id>_run.txt (per-test record).
+    # Every print also goes to sessions/<id>/<id>_run.txt (per-test record).
     _log_lines = [f"Test: {test_id}", f"cam1: {cam1}", f"cam2: {cam2}", ""]
 
     def say(msg=""):

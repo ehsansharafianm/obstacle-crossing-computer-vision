@@ -25,7 +25,7 @@ lens/zoom, not position. Keep the zoom at **1×** and they stay valid.
   with good overlap.
 - **Tape the tripod feet to the floor, tighten everything**, sandbag if you can.
 
-## 2. Record the 4 calibration clips → `calibrations\calibNN\`
+## 2. Record the 4 calibration clips → `calibration\calibNN\`
 | Clip | What | Length |
 |------|------|--------|
 | `cam1_ext`, `cam2_ext` | big ChArUco board held **STATIC** at ~15–20 poses (vary distance, left/right, tilt); both cameras see it each time | ~60–90 s |
@@ -37,7 +37,7 @@ Static is critical — prop the board at each pose rather than hand-holding.
 ```
 run_calib 4
 ```
-Check `calibrations\calib04\calib_run.txt`:
+Check `calibration\calib04\calib_run.txt`:
 - stereo **RMS < 1.5 px**
 - floor **residual < 3 mm**
 - camera height ≈ your physical setup
@@ -45,7 +45,7 @@ Check `calibrations\calib04\calib_run.txt`:
 If any is off, re-record step 2 (usually the board wasn't held still, or too few
 distinct poses). This promotes the new calibration to active — all tests below use it.
 
-## 4. Record each crossing → `experiments\testNN\`
+## 4. Record each crossing → `sessions\testNN\`
 **Do not touch the cameras.** For each test:
 - **Clap once**, sharp, at the start (this is the camera sync — mandatory).
 - **2–3 slow, deliberate crossings**, foot staying in **both** camera views.
@@ -57,7 +57,7 @@ distinct poses). This promotes the new calibration to active — all tests below
 ```
 run_test 5
 ```
-Read `experiments\test05\test05_run.txt`. Good signs: detection > ~85 % while the
+Read `sessions\test05\test05_run.txt`. Good signs: detection > ~85 % while the
 foot is in view, **toe–heel std < ~15 mm**.
 
 ---
@@ -65,13 +65,12 @@ foot is in view, **toe–heel std < ~15 mm**.
 ## Quick reference
 | Step | Folder | Command |
 |------|--------|---------|
-| Calibrate (once per session) | `calibrations\calibNN\` ← 4 clips | `run_calib N` |
-| Each crossing | `experiments\testNN\` ← 2 clips (`cam1`,`cam2`) | `run_test N` |
+| Calibrate (once per session) | `calibration\calibNN\` ← 4 clips | `run_calib N` |
+| Each crossing | `sessions\testNN\` ← 2 clips (`cam1`,`cam2`) | `run_test N` |
 
-Two session folders sit side by side in `code/`: **`calibrations/`** (calib
-sessions) and **`experiments/`** (test sessions). The singular **`calibration/`**
-folder is different — it holds the shared reference artifacts (intrinsics, board
-specs, and the active `.npz` the pipeline reads).
+Two folders in `code/`: **`calibration/`** holds the calibration sessions
+(`calib01`, `calib02`, …) plus the shared reference/active files at its root;
+**`sessions/`** holds the test sessions (`test01`, `test02`, …).
 
 A bare number works everywhere (`4` → `calib04` / `test04`). Both `run_*.bat`
 files can also be double-clicked — they'll ask for the number.
