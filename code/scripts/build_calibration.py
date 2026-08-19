@@ -44,12 +44,18 @@ def resolve_id(raw):
     return f"calib{int(s):02d}" if s.isdigit() else s
 
 
-def find_video(folder, *prefixes):
-    for pre in prefixes:
-        hits = sorted(p for p in folder.glob(pre + "*")
-                      if p.is_file() and p.suffix in VIDEO_EXTS)
-        if hits:
-            return hits[0]
+def _norm(s):
+    """Lowercase, drop separators -> tolerant matching across naming styles
+    (Cam1-extr, cam1_ext, Cam1 Extrinsics all normalise the same way)."""
+    return s.lower().replace("-", "").replace("_", "").replace(" ", "")
+
+
+def find_video(folder, *keys):
+    """First video whose normalised name contains ALL keys (e.g. 'cam1','ext')."""
+    nkeys = [_norm(k) for k in keys]
+    for p in sorted(folder.iterdir()):
+        if p.is_file() and p.suffix in VIDEO_EXTS and all(k in _norm(p.stem) for k in nkeys):
+            return p
     return None
 
 
@@ -60,10 +66,10 @@ def main():
     folder = SESS_ROOT / cid
     folder.mkdir(parents=True, exist_ok=True)
 
-    c1e = find_video(folder, "cam1_ext", "cam1_extrins")
-    c2e = find_video(folder, "cam2_ext", "cam2_extrins")
-    c1f = find_video(folder, "cam1_floor")
-    c2f = find_video(folder, "cam2_floor")
+    c1e = find_video(folder, "cam1", "ext")
+    c2e = find_video(folder, "cam2", "ext")
+    c1f = find_video(folder, "cam1", "floor")
+    c2f = find_video(folder, "cam2", "floor")
     missing = [n for n, v in [("cam1_ext", c1e), ("cam2_ext", c2e),
                               ("cam1_floor", c1f), ("cam2_floor", c2f)] if v is None]
     if missing:
