@@ -8,7 +8,7 @@ REM  Use it either way:
 REM    * Double-click this file  -> it asks for the calib number, you type 4.
 REM    * From a terminal:  run_calib 4        (or:  run_calib calib04)
 REM
-REM  Put four clips in calibration\sessions\calib04\ first:
+REM  Put four clips in calibrations\calib04\ first:
 REM    cam1_ext,  cam2_ext     (board held STATIC at ~15-20 poses, both cameras)
 REM    cam1_floor, cam2_floor  (board flat on the floor)
 REM  If the folder is missing, running this creates it and tells you what to drop in.

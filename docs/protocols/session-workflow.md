@@ -25,7 +25,7 @@ lens/zoom, not position. Keep the zoom at **1×** and they stay valid.
   with good overlap.
 - **Tape the tripod feet to the floor, tighten everything**, sandbag if you can.
 
-## 2. Record the 4 calibration clips → `calibration\sessions\calibNN\`
+## 2. Record the 4 calibration clips → `calibrations\calibNN\`
 | Clip | What | Length |
 |------|------|--------|
 | `cam1_ext`, `cam2_ext` | big ChArUco board held **STATIC** at ~15–20 poses (vary distance, left/right, tilt); both cameras see it each time | ~60–90 s |
@@ -37,7 +37,7 @@ Static is critical — prop the board at each pose rather than hand-holding.
 ```
 run_calib 4
 ```
-Check `calibration\sessions\calib04\calib_run.txt`:
+Check `calibrations\calib04\calib_run.txt`:
 - stereo **RMS < 1.5 px**
 - floor **residual < 3 mm**
 - camera height ≈ your physical setup
@@ -65,8 +65,13 @@ foot is in view, **toe–heel std < ~15 mm**.
 ## Quick reference
 | Step | Folder | Command |
 |------|--------|---------|
-| Calibrate (once per session) | `calibration\sessions\calibNN\` ← 4 clips | `run_calib N` |
+| Calibrate (once per session) | `calibrations\calibNN\` ← 4 clips | `run_calib N` |
 | Each crossing | `experiments\testNN\` ← 2 clips (`cam1`,`cam2`) | `run_test N` |
+
+Two session folders sit side by side in `code/`: **`calibrations/`** (calib
+sessions) and **`experiments/`** (test sessions). The singular **`calibration/`**
+folder is different — it holds the shared reference artifacts (intrinsics, board
+specs, and the active `.npz` the pipeline reads).
 
 A bare number works everywhere (`4` → `calib04` / `test04`). Both `run_*.bat`
 files can also be double-clicked — they'll ask for the number.

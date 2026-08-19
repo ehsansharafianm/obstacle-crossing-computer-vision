@@ -1,12 +1,16 @@
 """Build (or rebuild) the camera calibration for one session: stereo extrinsics
-+ world-frame transform, from four clips in calibration/sessions/<id>/.
++ world-frame transform, from four clips in calibrations/<id>/.
+
+Session folders live in code/calibrations/ (next to code/experiments/); the
+SHARED reference artifacts (intrinsics, board specs, and the active .npz that the
+foot pipeline reads) stay in code/calibration/.
 
 Consumer tripods drift, so recalibrate extrinsics + world at the START of each
 recording session, then record all tests without moving the cameras. Intrinsics
 (per-lens) are NOT redone here -- they don't depend on camera position, only on
 zoom/lens, which you keep at 1x.
 
-Inputs (in calibration/sessions/<id>/):
+Inputs (in calibrations/<id>/):
   cam1_ext.MOV,   cam2_ext.MOV     board held STATIC at ~15-20 poses (both cameras)
   cam1_floor.MOV, cam2_floor.MOV   board flat on the floor (defines the world frame)
 
@@ -29,8 +33,8 @@ from occ.stereo import StereoExtrinsics  # noqa: E402
 from occ.worldframe import compute_world_transform  # noqa: E402
 from run_stereo_ransac import solve_extrinsics  # noqa: E402
 
-SESS_ROOT = Path("calibration/sessions")
-ACTIVE = Path("calibration")
+SESS_ROOT = Path("calibrations")        # per-session inputs+outputs (next to experiments/)
+ACTIVE = Path("calibration")            # shared artifacts + active calibration the pipeline reads
 VIDEO_EXTS = (".MOV", ".mov", ".MP4", ".mp4", ".avi", ".AVI")
 
 
