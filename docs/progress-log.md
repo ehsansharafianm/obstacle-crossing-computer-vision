@@ -7,6 +7,8 @@ What we've built and proven, in order. See [[code-structure]] for the code,
 - **Two consumer iPads → a validated ~2 mm 3D motion-capture system.**
 - **Clean 3D foot-clearance trajectory on a real crossing** (test06): clearance arcs +
   17 mm rigid-shoe consistency. The full chain works: calibrate → clap → track → 3D → clearance.
+- **Bilateral capture** (test07): both feet + 2 ground markers tracked at once
+  (`build_multi_trajectory.py`); left foot **14 mm** toe–heel std.
 - Turnkey per-session workflow: `run_calib N` / `run_test N` → CSV + plot.
 - The hardest technical risks (mm-accuracy from consumer cameras; clean foot tracking) are **retired**.
 

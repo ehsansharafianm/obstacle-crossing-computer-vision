@@ -35,8 +35,10 @@ See [[session-workflow]] for the calibrate → record → process loop.
 **Main workflow** (one command each; double-click wrappers `run_calib.bat` / `run_test.bat`)
 - `build_calibration.py` — **`run_calib N [normal|large]`**: stereo extrinsics
   (`run_stereo_ransac`) + world frame from a session's 4 board clips → active calibration.
-- `build_foot_trajectory.py` — **`run_test N`**: track markers → clap-sync → triangulate →
-  rigid-pair + plausibility filter → world frame → CSV + plot.
+- `build_foot_trajectory.py` — **`run_test N`**: one foot (toe+heel) → clap-sync →
+  triangulate → rigid-pair + plausibility filter → world frame → CSV + plot.
+- `build_multi_trajectory.py` — **6-marker bilateral**: both feet (L/R toe+heel) +
+  two static ground markers (`detect_two_feet_ground`, closest-pair gating).
 
 **Intrinsics (per lens, rarely rerun)**
 - `make_calib_board.py` / `make_big_calib_board.py` — generate printable ChArUco boards (small / big tiled).

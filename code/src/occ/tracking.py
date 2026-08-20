@@ -20,21 +20,20 @@ COLOR_RANGES = {
     # Red marker (hue ~2). Looser hue for motion; skin (hue ~8) is rejected in
     # detect_foot by the "red nearest the green marker" rule, not by hue alone.
     "red":    [((0, 90, 80), (10, 255, 255)), ((172, 90, 80), (180, 255, 255))],
-    "teal":   [((78, 50, 100), (98, 255, 255))],
-    # Foot green marker (lime plastic) reads ~hue 39; olive shorts ~hue 101 and
-    # yellow obstacles ~hue 25-33 are excluded by the bounds. NOTE: this lime is
-    # close to yellow -- for the real study (yellow obstacles) use a truer green.
-    "green":  [((34, 90, 70), (99, 255, 255))],
     "yellow": [((22, 90, 120), (35, 255, 255))],
     "blue":   [((100, 90, 80), (120, 255, 255))],
     "orange": [((9, 120, 120), (20, 255, 255))],
-    "pink":   [((145, 60, 120), (170, 255, 255))],
-    # Foot markers (spherical). Purple toe reads ~hue 124, sat 130+ under the lab
-    # lights; sat>=65 & hue>=114 rejects the low-saturation blue couch (~hue 110,
-    # sat 55). Red heel ball reads hue ~176 (very saturated); restricting to the
-    # HIGH-hue side only (168-180) excludes skin/legs (hue ~5) entirely, which the
-    # looser "red" above (and a 0-8 branch) would wrongly pick up.
-    "purple":     [((114, 65, 45), (134, 255, 255))],
+    # --- Six-marker study set (test07 on): two feet + ground, all spherical ----
+    # Measured under the lab lights: purple 124, green 48, teal 98, pink 165,
+    # red 177. Ranges are spaced to keep them apart AND away from clutter (the
+    # couch sliver reads teal-ish ~hue 107; skin ~hue 5). Feet use closest-pair
+    # gating so same-colour clutter without its partner nearby is rejected.
+    "purple":     [((114, 65, 45), (134, 255, 255))],   # left toe
+    "green":      [((34, 90, 60), (75, 255, 255))],      # left heel (upper<teal)
+    "pink":       [((148, 90, 70), (172, 255, 255))],    # right toe (upper<red)
+    "teal":       [((88, 90, 60), (106, 255, 255))],     # right heel (couch ~107 excluded)
+    "red_ground": [((172, 130, 70), (180, 255, 255))],   # ground markers (skin ~5 excluded)
+    # legacy alias used by the single-foot detector
     "red_marker": [((168, 130, 60), (180, 255, 255))],
 }
 
@@ -129,6 +128,59 @@ def detect_foot(frame, max_area=20000, near_px=500):
         return max(toes, key=lambda b: b[2])[:2], max(heels, key=lambda b: b[2])[:2]
     p, r = best
     return p[:2], r[:2]
+
+
+def _closest_pair(toes, heels, near_px):
+    """Return the (toe, heel) blobs that are closest together, but ONLY if both a
+    toe and a heel exist and they lie within `near_px`. Otherwise (None, None).
+
+    Requiring a real pair rejects same-colour background clutter (e.g. the couch's
+    teal, which never has a pink toe beside it). The two foot markers of one shoe
+    almost always appear together, so this costs little coverage."""
+    if not toes or not heels:
+        return None, None
+    best, bd = None, 1e9
+    for p in toes:
+        for r in heels:
+            d = np.hypot(p[0] - r[0], p[1] - r[1])
+            if d < bd:
+                bd, best = d, (p, r)
+    if bd > near_px:
+        return None, None
+    return best[0][:2], best[1][:2]
+
+
+# The 6-marker study set (test07 on): which COLOR_RANGES entry is each marker.
+STUDY_MARKERS = {
+    "L_toe": "purple", "L_heel": "green",      # left foot
+    "R_toe": "pink",   "R_heel": "teal",       # right foot
+    "ground": "red_ground",                    # two static ground markers (same colour)
+}
+
+
+def detect_two_feet_ground(frame, max_area=9000, near_px=500, top_ignore=0.08):
+    """Detect the 6-marker set. Returns a dict with L_toe/L_heel/R_toe/R_heel as
+    (x, y) or None, and `ground` = list of up to 2 (x, y) red ground markers
+    (largest first). Each foot is the CLOSEST pair of its two colours, so
+    same-colour clutter with no partner nearby is rejected.
+
+    `top_ignore` blanks the top fraction of the frame before detection — the
+    furniture (a teal-ish couch) lives along the top edge and otherwise gets
+    picked up as a false heel. The floor markers and feet sit well below it.
+    `max_area` also caps out the large couch blob.
+    """
+    hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+    if top_ignore > 0:
+        hsv[:int(frame.shape[0] * top_ignore)] = 0
+
+    def bl(color):
+        return detect_blobs(color_mask(hsv, color), max_area=max_area)
+
+    L_toe, L_heel = _closest_pair(bl(STUDY_MARKERS["L_toe"]), bl(STUDY_MARKERS["L_heel"]), near_px)
+    R_toe, R_heel = _closest_pair(bl(STUDY_MARKERS["R_toe"]), bl(STUDY_MARKERS["R_heel"]), near_px)
+    reds = sorted(bl(STUDY_MARKERS["ground"]), key=lambda b: b[2], reverse=True)[:2]
+    return {"L_toe": L_toe, "L_heel": L_heel, "R_toe": R_toe, "R_heel": R_heel,
+            "ground": [b[:2] for b in reds]}
 
 
 @dataclass
