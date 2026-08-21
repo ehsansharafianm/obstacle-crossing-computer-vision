@@ -88,14 +88,15 @@ function plot_trajectory(csvfile)
     end
 
     % --- overlay the static ground markers (from the 'ground' sheet), if any ---
+    gh = gobjects(0);                       % handle(s) for the ground toggle
     if isxlsx
         try
             sh = sheetnames(datafile);
             if any(strcmp(sh, 'ground'))
                 G = readtable(datafile, 'Sheet', 'ground');
-                plot3(ax3, G.x_mm, G.y_mm, G.z_mm, 's', 'MarkerSize', 12, ...
-                      'MarkerFaceColor', [0.85 0.12 0.12], 'MarkerEdgeColor', 'k', ...
-                      'LineStyle', 'none', 'DisplayName', 'ground');
+                gh = plot3(ax3, G.x_mm, G.y_mm, G.z_mm, 's-', 'Color', [0.85 0.12 0.12], ...
+                      'LineWidth', 1.6, 'MarkerSize', 12, 'MarkerFaceColor', [0.85 0.12 0.12], ...
+                      'MarkerEdgeColor', 'k', 'DisplayName', 'ground');
             end
         catch
         end
@@ -117,12 +118,22 @@ function plot_trajectory(csvfile)
             'Callback', @(src, ~) set(H(m), 'Visible', onoff(src.Value)));
     end
 
+    % --- ground on/off checkbox (static markers, drawn as squares joined by a line) ---
+    nRows = nM;
+    if ~isempty(gh)
+        uicontrol(fig, 'Style', 'checkbox', 'String', 'ground', 'Value', 1, ...
+            'Units', 'normalized', 'Position', [0.05 0.955-0.030*nM 0.16 0.028], ...
+            'BackgroundColor', 'w', 'FontWeight', 'bold', 'ForegroundColor', [0.85 0.12 0.12], ...
+            'Callback', @(src, ~) set(gh, 'Visible', onoff(src.Value)));
+        nRows = nM + 1;
+    end
+
     % --- Line / Scatter style dropdown ---
     uicontrol(fig, 'Style', 'text', 'String', 'style:', 'Units', 'normalized', ...
-        'Position', [0.05 0.955-0.030*nM-0.03 0.05 0.026], 'BackgroundColor', 'w', ...
+        'Position', [0.05 0.955-0.030*nRows-0.03 0.05 0.026], 'BackgroundColor', 'w', ...
         'HorizontalAlignment', 'left');
     uicontrol(fig, 'Style', 'popupmenu', 'String', {'Line', 'Scatter'}, ...
-        'Units', 'normalized', 'Position', [0.10 0.955-0.030*nM-0.03 0.11 0.028], ...
+        'Units', 'normalized', 'Position', [0.10 0.955-0.030*nRows-0.03 0.11 0.028], ...
         'Callback', @(src, ~) setstyle(H, src.Value));
 end
 
