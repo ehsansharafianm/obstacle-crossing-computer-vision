@@ -10,8 +10,9 @@ function plot_trajectory(csvfile)
 % Any number of markers is supported (names auto-detected from the headers).
 % If the .xlsx also has a "ground" sheet, those static points are drawn in 3D.
 %
-% Left panel  : 3D trajectory.   Right panel : X, Y, Z vs time (stacked).
-% Controls (top-left):
+% Opens TWO figures: (1) the 3D trajectory, (2) X / Y / Z vs time. Re-running
+% closes the previous pair first.
+% Controls (on the 3D figure, top-left):
 %   * one checkbox per marker  -> toggle it ON/OFF in BOTH panels
 %   * Line / Scatter dropdown  -> switch every marker between a connected line
 %                                 and points only.
@@ -58,20 +59,23 @@ function plot_trajectory(csvfile)
     if nM == 0, error('No "<marker>_x_mm" columns found.'); end
     cmap = lines(max(nM, 3));
 
-    % --- figure & axes ---
-    fig = figure('Name', 'Marker trajectories', 'Color', 'w', ...
-                 'Tag', 'trajfig', 'Position', [80 80 1360 680]);
-
-    ax3 = axes('Parent', fig, 'Position', [0.05 0.10 0.44 0.80]);
+    % --- TWO separate figures (both tagged 'trajfig' so a re-run closes both) ---
+    % Figure 1: the 3D trajectory (carries the marker/ground toggles).
+    fig3 = figure('Name', 'Marker trajectories - 3D', 'Color', 'w', ...
+                  'Tag', 'trajfig', 'Position', [70 130 740 700]);
+    ax3 = axes('Parent', fig3, 'Position', [0.13 0.09 0.82 0.84]);
     hold(ax3, 'on'); grid(ax3, 'on'); box(ax3, 'on');
     xlabel(ax3, 'X (mm)'); ylabel(ax3, 'Y (mm)'); zlabel(ax3, 'Z (mm)');
     title(ax3, '3D trajectory'); view(ax3, 3); axis(ax3, 'equal'); rotate3d(ax3, 'on');
 
-    axX = axes('Parent', fig, 'Position', [0.58 0.68 0.38 0.24]); prep(axX); ylabel(axX, 'X (mm)');
+    % Figure 2: X / Y / Z vs time.
+    figp = figure('Name', 'Marker positions vs time', 'Color', 'w', ...
+                  'Tag', 'trajfig', 'Position', [830 130 640 700]);
+    axX = axes('Parent', figp, 'Position', [0.12 0.70 0.83 0.25]); prep(axX); ylabel(axX, 'X (mm)');
     title(axX, 'Position vs time');
-    axY = axes('Parent', fig, 'Position', [0.58 0.40 0.38 0.24]); prep(axY); ylabel(axY, 'Y (mm)');
-    axZ = axes('Parent', fig, 'Position', [0.58 0.10 0.38 0.24]); prep(axZ); ylabel(axZ, 'Z (mm)');
-    xlabel(axZ, 'time (s)');
+    axY = axes('Parent', figp, 'Position', [0.12 0.40 0.83 0.25]); prep(axY); ylabel(axY, 'Y (mm)');
+    axZ = axes('Parent', figp, 'Position', [0.12 0.09 0.83 0.25]); prep(axZ);
+    xlabel(axZ, 'time (s)'); ylabel(axZ, 'Z (mm)');
 
     % --- plot each marker, storing its graphics handles ---
     H = containers.Map();
@@ -112,7 +116,7 @@ function plot_trajectory(csvfile)
     % --- per-marker on/off checkboxes ---
     for k = 1:nM
         m = markers{k};
-        uicontrol(fig, 'Style', 'checkbox', 'String', m, 'Value', 1, ...
+        uicontrol(fig3, 'Style', 'checkbox', 'String', m, 'Value', 1, ...
             'Units', 'normalized', 'Position', [0.05 0.955-0.030*(k-1) 0.16 0.028], ...
             'BackgroundColor', 'w', 'FontWeight', 'bold', 'ForegroundColor', cmap(k, :), ...
             'Callback', @(src, ~) set(H(m), 'Visible', onoff(src.Value)));
@@ -121,7 +125,7 @@ function plot_trajectory(csvfile)
     % --- ground on/off checkbox (static markers, drawn as squares joined by a line) ---
     nRows = nM;
     if ~isempty(gh)
-        uicontrol(fig, 'Style', 'checkbox', 'String', 'ground', 'Value', 1, ...
+        uicontrol(fig3, 'Style', 'checkbox', 'String', 'ground', 'Value', 1, ...
             'Units', 'normalized', 'Position', [0.05 0.955-0.030*nM 0.16 0.028], ...
             'BackgroundColor', 'w', 'FontWeight', 'bold', 'ForegroundColor', [0.85 0.12 0.12], ...
             'Callback', @(src, ~) set(gh, 'Visible', onoff(src.Value)));
@@ -129,10 +133,10 @@ function plot_trajectory(csvfile)
     end
 
     % --- Line / Scatter style dropdown ---
-    uicontrol(fig, 'Style', 'text', 'String', 'style:', 'Units', 'normalized', ...
+    uicontrol(fig3, 'Style', 'text', 'String', 'style:', 'Units', 'normalized', ...
         'Position', [0.05 0.955-0.030*nRows-0.03 0.05 0.026], 'BackgroundColor', 'w', ...
         'HorizontalAlignment', 'left');
-    uicontrol(fig, 'Style', 'popupmenu', 'String', {'Line', 'Scatter'}, ...
+    uicontrol(fig3, 'Style', 'popupmenu', 'String', {'Line', 'Scatter'}, ...
         'Units', 'normalized', 'Position', [0.10 0.955-0.030*nRows-0.03 0.11 0.028], ...
         'Callback', @(src, ~) setstyle(H, src.Value));
 end
