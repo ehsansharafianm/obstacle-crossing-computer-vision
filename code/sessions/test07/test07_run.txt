@@ -9,11 +9,11 @@ Test: test07
 Sync: cam2 + -5.786s = cam1  (conf 6)
   L foot: toe-heel 291 mm, dropped 200 outliers
   R foot: toe-heel 301 mm, dropped 340 outliers
-Ground markers (world, mm): (-35,323,118) | (-440,524,-105)
+Ground markers (world, mm): (90,213,Z=2) | (-476,200,Z=1)
 Output: world frame (Z = height above floor)
   L_toe   28% reconstructed
   L_heel  28% reconstructed
   R_toe   32% reconstructed
   R_heel  32% reconstructed
 
-Saved test07_trajectory.csv, test07_trajectory.png, test07_ground.csv
+Saved test07_trajectory.xlsx (sheets: markers + ground), test07_trajectory.png

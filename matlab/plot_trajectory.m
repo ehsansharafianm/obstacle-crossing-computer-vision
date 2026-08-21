@@ -2,12 +2,13 @@ function plot_trajectory(csvfile)
 % PLOT_TRAJECTORY  Interactive 3D + X/Y/Z-vs-time plot of marker trajectories.
 %
 %   plot_trajectory                 % opens a file picker
-%   plot_trajectory('test01')       % -> code/sessions/test01/test01_trajectory.csv
+%   plot_trajectory('test07')       % -> code/sessions/test07/test07_trajectory.xlsx
 %   plot_trajectory('foot_trajectory.csv')      % explicit file / full path
 %
-% CSV columns (exported by the obstacle-crossing pipeline):
+% Reads the marker trajectories (a .xlsx "markers" sheet, or a plain .csv):
 %   time_s, <marker>_x_mm, <marker>_y_mm, <marker>_z_mm, ...
 % Any number of markers is supported (names auto-detected from the headers).
+% If the .xlsx also has a "ground" sheet, those static points are drawn in 3D.
 %
 % Left panel  : 3D trajectory.   Right panel : X, Y, Z vs time (stacked).
 % Controls (top-left):
@@ -16,28 +17,35 @@ function plot_trajectory(csvfile)
 %                                 and points only.
 
     if nargin < 1 || isempty(csvfile)
-        [f, p] = uigetfile('*.csv', 'Select a trajectory CSV');
+        [f, p] = uigetfile({'*.xlsx;*.csv', 'Trajectory files'}, 'Select a trajectory file');
         if isequal(f, 0), return; end
-        csvfile = fullfile(p, f);
-    elseif ~exist(csvfile, 'file') && ~endsWith(lower(csvfile), '.csv')
-        % A bare test id (e.g. 'test01') -> code/sessions/<id>/<id>_trajectory.csv,
-        % resolved relative to this .m file so it works from any MATLAB cwd.
+        datafile = fullfile(p, f);
+    elseif exist(csvfile, 'file')
+        datafile = csvfile;                                   % explicit path given
+    else
+        % A bare test id (e.g. 'test07') -> code/sessions/<id>/<id>_trajectory.xlsx
+        % (falls back to .csv), resolved relative to this .m file.
         id   = csvfile;
         root = fileparts(fileparts(mfilename('fullpath')));   % repo root
-        cand = fullfile(root, 'code', 'sessions', id, [id '_trajectory.csv']);
-        if exist(cand, 'file')
-            csvfile = cand;
-        else
-            error('No CSV for test "%s". Looked for:\n  %s', id, cand);
+        candx = fullfile(root, 'code', 'sessions', id, [id '_trajectory.xlsx']);
+        candc = fullfile(root, 'code', 'sessions', id, [id '_trajectory.csv']);
+        if exist(candx, 'file'),     datafile = candx;
+        elseif exist(candc, 'file'), datafile = candc;
+        else,  error('No trajectory file for "%s". Looked for:\n  %s\n  %s', id, candx, candc);
         end
     end
+    isxlsx = endsWith(lower(datafile), '.xlsx');
 
     % --- close any previous window opened by this function ---
     delete(findall(0, 'Type', 'figure', 'Tag', 'trajfig'));
 
-    T  = readtable(csvfile);
+    if isxlsx
+        T = readtable(datafile, 'Sheet', 'markers');
+    else
+        T = readtable(datafile);
+    end
     vn = T.Properties.VariableNames;
-    if ~ismember('time_s', vn), error('CSV must have a "time_s" column.'); end
+    if ~ismember('time_s', vn), error('File must have a "time_s" column.'); end
     t = T.time_s;
 
     % --- auto-detect marker names from "<name>_x_mm" columns ---
@@ -77,6 +85,20 @@ function plot_trajectory(csvfile)
         h(3) = plot(axY, t, y, '-', 'Color', c, 'Marker', 'none', 'LineWidth', 1.2);
         h(4) = plot(axZ, t, z, '-', 'Color', c, 'Marker', 'none', 'LineWidth', 1.2);
         H(m) = h;
+    end
+
+    % --- overlay the static ground markers (from the 'ground' sheet), if any ---
+    if isxlsx
+        try
+            sh = sheetnames(datafile);
+            if any(strcmp(sh, 'ground'))
+                G = readtable(datafile, 'Sheet', 'ground');
+                plot3(ax3, G.x_mm, G.y_mm, G.z_mm, 's', 'MarkerSize', 12, ...
+                      'MarkerFaceColor', [0.85 0.12 0.12], 'MarkerEdgeColor', 'k', ...
+                      'LineStyle', 'none', 'DisplayName', 'ground');
+            end
+        catch
+        end
     end
     legend(ax3, 'show', 'Location', 'best', 'Interpreter', 'none');
 

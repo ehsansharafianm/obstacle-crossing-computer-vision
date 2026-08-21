@@ -5,3 +5,4 @@ opencv-contrib-python==5.0.0.93
 matplotlib==3.11.1
 pandas==3.0.5
 imageio-ffmpeg==0.6.0   # bundled ffmpeg for audio-clap camera sync (occ.audiosync)
+openpyxl==3.1.5         # write the multi-marker .xlsx (markers + ground sheets)
