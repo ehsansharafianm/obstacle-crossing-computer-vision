@@ -262,14 +262,19 @@ def main():
                 best = (err, np.array(Xs))
         return best[1]
 
-    ts1, F1, G1, c1cached = load_or_track(cam1, folder / f"{tid}_cam1_track_cache.npz")
-    say(f"[{tid}] {cam1.name}: {'cached' if c1cached else 'tracked'}")
-    ts2, F2, G2, c2cached = load_or_track(cam2, folder / f"{tid}_cam2_track_cache.npz")
-    say(f"[{tid}] {cam2.name}: {'cached' if c2cached else 'tracked'}")
+    def timed_track(cam, tag):
+        t0 = time.perf_counter()
+        ts, F, G, cached = load_or_track(cam, folder / f"{tid}_{tag}_track_cache.npz")
+        say(f"[{tid}] {cam.name} ({tag}): {'loaded cache' if cached else 'tracked'} "
+            f"in {time.perf_counter()-t0:.1f}s")
+        return ts, F, G
+
+    ts1, F1, G1 = timed_track(cam1, "cam1")
+    ts2, F2, G2 = timed_track(cam2, "cam2")
     ts3 = F3 = G3 = None
     if cam3 is not None:
-        ts3, F3, G3, c3cached = load_or_track(cam3, folder / f"{tid}_cam3_track_cache.npz")
-        say(f"[{tid}] {cam3.name}: {'cached' if c3cached else 'tracked'}  (3-camera mode)")
+        ts3, F3, G3 = timed_track(cam3, "cam3")
+        say(f"[{tid}] 3-camera mode")
     for k in FEET:
         c3s = f"  cam3 {100*np.mean(~np.isnan(F3[k][:,0])):.0f}%" if cam3 is not None else ""
         say(f"  {k:7s} cam1 {100*np.mean(~np.isnan(F1[k][:,0])):.0f}%  "
@@ -326,7 +331,7 @@ def main():
     say(f"Reconstructing from {len(cams)} cameras (marker needs >=2 to get a 3D point)")
 
     world = {}
-    n_clean, n_gap = 0, 0                                 # cam1+cam2 vs cam3 gap-fill
+    n_by_views = {2: 0, 3: 0}                             # points reconstructed from 2 / 3 cams
     for k in FEET:
         # per camera: normalised, time-aligned 2D points on the common grid
         NP = [norm_pts(intr, interp(ts, Fk[k], grid - o)) for (ts, Fk, intr, _P, o) in cams]
@@ -336,18 +341,15 @@ def main():
             have = [c for c in range(len(cams)) if not np.isnan(NP[c][i, 0])]
             if len(have) < 2:
                 continue
-            # cam1+cam2 is the cleanest pair (0.96 px); when both see the marker,
-            # use only them -- adding the noisier cam3 dilutes precision. cam3
-            # earns its place by FILLING GAPS: frames where cam1 or cam2 missed.
-            if 0 in have and 1 in have:
-                use = [0, 1]; n_clean += 1
-            else:
-                use = have; n_gap += 1
-            X[i] = tri_robust([NP[c][i] for c in use], [Pmats[c] for c in use])
+            # Use every camera that saw the marker; tri_robust averages the views
+            # (lower noise) and drops one that clearly disagrees (occlusion / bad
+            # detection). No hardcoded "core pair" -- whichever cams agree win.
+            X[i] = tri_robust([NP[c][i] for c in have], [Pmats[c] for c in have])
+            n_by_views[len(have)] = n_by_views.get(len(have), 0) + 1
         world[k] = W.apply(X) if W is not None else X
     if cam3 is not None:
-        say(f"  reconstructed points: {n_clean} from cam1+cam2, "
-            f"{n_gap} gap-filled using cam3")
+        say(f"  reconstructed points: {n_by_views.get(3,0)} from 3 cams, "
+            f"{n_by_views.get(2,0)} from 2 cams")
 
     # per-foot rigid-pair filter + plausibility gate
     for toe, heel in PAIRS:

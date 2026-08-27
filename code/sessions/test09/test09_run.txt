@@ -1,0 +1,30 @@
+Test: test09
+
+[test09] cam1.mp4 (cam1): tracked in 98.9s
+[test09] cam2.mp4 (cam2): tracked in 100.3s
+[test09] cam3.mp4 (cam3): tracked in 120.1s
+[test09] 3-camera mode
+  L_toe   cam1 24%  cam2 21%  cam3 17%
+  L_heel  cam1 24%  cam2 21%  cam3 17%
+  R_toe   cam1 25%  cam2 19%  cam3 18%
+  R_heel  cam1 25%  cam2 19%  cam3 18%
+Clap detected: cam1 @ 4.495s (x14 above ambient), cam2 @ 7.312s (x11)
+  time difference (cam1 - cam2) = -2.818s  [real]
+Sync clap:   cam2 + -2.818s  (conf 11)
+Sync motion: cam2 + -3.317s  (score 0.51)
+-> using clap sync: cam2 + -2.818s = cam1
+Sync clap:   cam3 + -7.230s = cam1  (cam3 clap @ 11.725s, x5)
+Audio-sync figure -> test09_audiosync.png  (clap jumps + alignment)
+Reconstructing from 3 cameras (marker needs >=2 to get a 3D point)
+  reconstructed points: 1170 from 3 cams, 418 from 2 cams
+  L foot: toe-heel 288 mm, dropped 94 outliers
+  R foot: toe-heel 293 mm, dropped 78 outliers
+Obstacle markers (world, mm): (7,156,Z=421) | (-533,135,Z=398)
+Output: world frame (Z = height above floor)
+  L_toe   19% reconstructed
+  L_heel  21% reconstructed
+  R_toe   17% reconstructed
+  R_heel  18% reconstructed
+
+Saved test09_trajectory.xlsx (sheets: markers + ground), test09_trajectory.png
+Processing time: 5 min 24.6 s  (324.6 s total)

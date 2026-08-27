@@ -1,8 +1,9 @@
 Test: test08
 
-[test08] cam1.mp4: cached
-[test08] cam2.mp4: cached
-[test08] cam3.mp4: cached  (3-camera mode)
+[test08] cam1.mp4 (cam1): loaded cache in 0.0s
+[test08] cam2.mp4 (cam2): loaded cache in 0.0s
+[test08] cam3.mp4 (cam3): loaded cache in 0.0s
+[test08] 3-camera mode
   L_toe   cam1 11%  cam2 13%  cam3 12%
   L_heel  cam1 11%  cam2 13%  cam3 12%
   R_toe   cam1 16%  cam2 14%  cam3 10%
@@ -15,9 +16,9 @@ Sync motion: cam2 + -5.350s  (score 0.30)
 Sync clap:   cam3 + 3.572s = cam1  (cam3 clap @ 7.235s, x21)
 Audio-sync figure -> test08_audiosync.png  (clap jumps + alignment)
 Reconstructing from 3 cameras (marker needs >=2 to get a 3D point)
-  reconstructed points: 1364 from cam1+cam2, 192 gap-filled using cam3
-  L foot: toe-heel 293 mm, dropped 59 outliers
-  R foot: toe-heel 317 mm, dropped 14 outliers
+  reconstructed points: 1232 from 3 cams, 324 from 2 cams
+  L foot: toe-heel 290 mm, dropped 48 outliers
+  R foot: toe-heel 315 mm, dropped 17 outliers
 Obstacle markers (world, mm): (-541,193,Z=301) | (9,189,Z=301)
 Output: world frame (Z = height above floor)
   L_toe   13% reconstructed
@@ -26,4 +27,4 @@ Output: world frame (Z = height above floor)
   R_heel  12% reconstructed
 
 Saved test08_trajectory.xlsx (sheets: markers + ground), test08_trajectory.png
-Processing time: 0 min 5.5 s  (5.5 s total)
+Processing time: 0 min 4.0 s  (4.0 s total)

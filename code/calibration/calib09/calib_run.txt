@@ -1,0 +1,18 @@
+Calibration session: calib09
+
+[calib09]  extrinsics: cam1_ext.mp4 + cam2_ext.mp4   floor: cam1_floor.mp4 + cam2_floor.mp4
+  board: calibration/board_measured_large.json
+
+-- Stereo extrinsics --
+pairs used = 10   RMS = 0.705 px   baseline = 1.161 m
+
+-- World frame (floor) --
+floor-flatness residual = 0.50 mm   camera height = 1535 mm
+
+-- cam2<->cam3 extrinsics (3rd camera) --
+pairs used = 8   RMS = 1.518 px   baseline = 1.984 m
+WARNING: cam2<->cam3 RMS >= 1.5 px -- 3rd camera pose may be poor
+cam3 calibrated -> 3-camera reconstruction enabled for this session.
+
+Active calibration updated (calibration/stereo_extrinsics.npz + world_transform.npz + stereo_extrinsics_cam2cam3.npz).
+Every test recorded in THIS session (cameras unmoved) now uses this calibration.

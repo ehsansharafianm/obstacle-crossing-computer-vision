@@ -14,6 +14,11 @@ zoom/lens, which you keep at 1x.
 Inputs (in calibration/<id>/):
   cam1_ext.MOV,   cam2_ext.MOV     board held STATIC at ~15-20 poses (both cameras)
   cam1_floor.MOV, cam2_floor.MOV   board flat on the floor (defines the world frame)
+  cam3_ext.MOV    (optional)       board poses shared with cam2 -> cam2<->cam3 pose,
+                                    enabling 3-camera reconstruction. cam2 is the hub,
+                                    so cam3 only needs to share poses with cam2 (not cam1).
+                                    Needs calibration/intrinsics_cam3.npz. cam3_floor
+                                    is not required (world frame uses cam1+cam2).
 
 Outputs: writes stereo_extrinsics.npz + world_transform.npz into the session
 folder AND promotes them to the active calibration/ that build_foot_trajectory
@@ -130,7 +135,32 @@ def main():
     W.save(folder / "world_transform.npz")
     shutil.copy(folder / "world_transform.npz", ACTIVE / "world_transform.npz")
 
-    say("\nActive calibration updated (calibration/stereo_extrinsics.npz + world_transform.npz).")
+    # --- 3. Optional 3rd camera: cam2<->cam3 extrinsics (cam2 is the hub) ------
+    c3e = find_video(folder, "cam3", "ext")
+    intr3_path = Path("calibration/intrinsics_cam3.npz")
+    if c3e is not None and intr3_path.exists():
+        say("\n-- cam2<->cam3 extrinsics (3rd camera) --")
+        extr23, rms23, np23 = solve_extrinsics(
+            c2e, c3e, board_json=board_json,
+            intr1_path="calibration/intrinsics_cam2.npz",
+            intr2_path="calibration/intrinsics_cam3.npz",
+            out=str(folder / "stereo_extrinsics_cam2cam3.npz"), verbose=True)
+        say(f"pairs used = {np23}   RMS = {rms23:.3f} px   baseline = {extr23.baseline_m():.3f} m")
+        if rms23 >= 1.5:
+            say("WARNING: cam2<->cam3 RMS >= 1.5 px -- 3rd camera pose may be poor")
+        shutil.copy(folder / "stereo_extrinsics_cam2cam3.npz",
+                    ACTIVE / "stereo_extrinsics_cam2cam3.npz")
+        say("cam3 calibrated -> 3-camera reconstruction enabled for this session.")
+    else:
+        # Stale cam2<->cam3 from a previous setup would silently misplace cam3.
+        (ACTIVE / "stereo_extrinsics_cam2cam3.npz").unlink(missing_ok=True)
+        if c3e is None:
+            say("\n(no cam3_ext clip -- 2-camera calibration)")
+        else:
+            say("\n(cam3_ext found but calibration/intrinsics_cam3.npz missing -- skipping cam3)")
+
+    say("\nActive calibration updated (calibration/stereo_extrinsics.npz + world_transform.npz"
+        + (" + stereo_extrinsics_cam2cam3.npz" if c3e is not None and intr3_path.exists() else "") + ").")
     say("Every test recorded in THIS session (cameras unmoved) now uses this calibration.")
 
     (folder / "calib_run.txt").write_text("\n".join(log) + "\n", encoding="utf-8")
