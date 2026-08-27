@@ -10,8 +10,9 @@ function plot_trajectory(csvfile)
 % Any number of markers is supported (names auto-detected from the headers).
 % If the .xlsx also has a "ground" sheet, those static points are drawn in 3D.
 %
-% Opens TWO figures: (1) the 3D trajectory, (2) X / Y / Z vs time. Re-running
-% closes the previous pair first.
+% Opens up to THREE figures: (1) the 3D trajectory, (2) X / Y / Z vs time, and
+% (3) the audio clap-sync (if the .xlsx has an 'audio' sheet) showing the clap
+% jumps before/after alignment. Re-running closes the previous set first.
 % Controls (on the 3D figure, top-left):
 %   * one checkbox per marker  -> toggle it ON/OFF in BOTH panels
 %   * Line / Scatter dropdown  -> switch every marker between a connected line
@@ -139,6 +140,25 @@ function plot_trajectory(csvfile)
     uicontrol(fig3, 'Style', 'popupmenu', 'String', {'Line', 'Scatter'}, ...
         'Units', 'normalized', 'Position', [0.10 0.955-0.030*nRows-0.03 0.11 0.028], ...
         'Callback', @(src, ~) setstyle(H, src.Value));
+
+    % --- Figure 3: the audio clap sync (only if the .xlsx has an 'audio' sheet) --
+    if isxlsx && any(strcmp(sheetnames(datafile), 'audio'))
+        A = readtable(datafile, 'Sheet', 'audio'); ta = A.time_s;
+        figa = figure('Name', 'Audio clap sync', 'Color', 'w', ...
+                      'Tag', 'trajfig', 'Position', [200 90 900 520]);
+        axa1 = subplot(2, 1, 1, 'Parent', figa); hold(axa1, 'on'); grid(axa1, 'on');
+        plot(axa1, ta, A.cam1_env, 'Color', [0.12 0.47 0.71], 'LineWidth', 1.0);
+        plot(axa1, ta, A.cam2_env, 'Color', [0.84 0.19 0.42], 'LineWidth', 1.0);
+        title(axa1, 'Audio energy - clap jumps BEFORE alignment (the spikes are the claps)');
+        ylabel(axa1, 'energy'); legend(axa1, {'cam1', 'cam2'}, 'Location', 'northeast');
+        axa2 = subplot(2, 1, 2, 'Parent', figa); hold(axa2, 'on'); grid(axa2, 'on');
+        plot(axa2, ta, A.cam1_env, 'Color', [0.12 0.47 0.71], 'LineWidth', 1.0);
+        plot(axa2, ta, A.cam2_env_aligned, 'Color', [0.84 0.19 0.42], 'LineWidth', 1.0);
+        title(axa2, 'AFTER alignment - the two claps line up');
+        xlabel(axa2, 'time (s, real)'); ylabel(axa2, 'energy');
+        legend(axa2, {'cam1', 'cam2 (shifted)'}, 'Location', 'northeast');
+        linkaxes([axa1 axa2], 'x');
+    end
 end
 
 function setstyle(H, mode)

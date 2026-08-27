@@ -22,3 +22,5 @@ code/results/
 
 # --- Keep per-session RESULTS (small) but never the raw videos -------------
 # CSV / PNG / run.txt under sessions/ and calibration/ are intentionally kept.
+# ...but not the regenerable 2D-detection caches (rebuilt from the clips).
+*_track_cache.npz

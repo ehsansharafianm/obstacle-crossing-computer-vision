@@ -31,7 +31,7 @@ COLOR_RANGES = {
     "purple":     [((114, 65, 45), (134, 255, 255))],   # left toe
     "green":      [((34, 90, 60), (75, 255, 255))],      # left heel (upper<teal)
     "pink":       [((148, 90, 70), (172, 255, 255))],    # right toe (upper<red)
-    "teal":       [((88, 90, 60), (106, 255, 255))],     # right heel (couch ~107 excluded)
+    "teal":       [((88, 140, 60), (106, 255, 255))],    # right heel (S>=140: marker ~204 kept, blue-grey clothing ~110 excluded)
     "red_ground": [((172, 130, 70), (180, 255, 255))],   # ground markers (skin ~5 excluded)
     # legacy alias used by the single-foot detector
     "red_marker": [((168, 130, 60), (180, 255, 255))],

@@ -62,38 +62,62 @@ def _envelope(x, sr, win=0.005):
     return e / (e.max() + 1e-9)
 
 
-def clap_offset(video1, video2, sr=16000, window=25.0):
-    """Camera sync offset from a shared clap.
+def clap_envelope(video, sr=8000, window=90.0, smooth=0.15, thr_mult=5.0):
+    """Detect the clap as the FIRST prominent energy hump in a clip's opening
+    `window` seconds, and return the audio envelope for plotting.
 
-    Returns (off, confidence) where `off` (seconds) is defined so that a cam1
-    time `t` corresponds to cam2 time `t - off` -- the convention the trajectory
-    builder uses (it samples cam2 at ``grid - off``). Equivalently
-    ``off = t_clap_cam1 - t_clap_cam2``.
+    Returns dict with:
+      t         : envelope time axis (seconds, CLIP time base)
+      env       : smoothed energy envelope, normalised to its own max
+      clap_t    : time of the detected clap (seconds, CLIP time base)
+      prominence: clap height over the ambient median (real clap ~10-20x)
+    or None if the audio can't be read.
 
-    The clap is the loudest, most isolated transient in each clip's opening
-    `window` seconds; the offset is the difference of the two peak times, located
-    to ~1 audio sample (sub-millisecond -- far finer than a 1/240 s video frame).
-    Confidence is how far each peak stands above its ambient baseline (a real clap
-    is many x; ambient noise ~1). We do NOT global-cross-correlate the envelopes:
-    with several loud sounds in a take (clap + box-drop + footsteps) that locks
-    onto the wrong alignment. Returns (None, 0.0) if audio can't be read.
+    "First prominent hump" (not global max) is deliberate: in a real take there
+    may be louder sounds LATER (a dropped box, a shout). As long as the clap is
+    the first thing well above ambient, we lock onto it and ignore the rest.
     """
-    x1 = _extract_audio(video1, sr, dur=window)
-    x2 = _extract_audio(video2, sr, dur=window)
-    if x1 is None or x2 is None:
+    x = _extract_audio(video, sr, dur=window)
+    if x is None:
+        return None
+    e = _envelope(x, sr, smooth)
+    t = np.arange(len(e)) / sr
+    med = float(np.median(e)) + 1e-9
+    above = np.where(e > med * thr_mult)[0]
+    if len(above):
+        first = above[0]
+        seg = e[first:first + int(0.5 * sr)]           # peak of that first hump
+        k = first + int(np.argmax(seg))
+    else:
+        k = int(np.argmax(e))                          # fallback: global max
+    return {"t": t, "env": e, "clap_t": k / sr, "prominence": float(e[k] / med)}
+
+
+def clap_offset(video1, video2, sr=16000, window=90.0, smooth=0.15):
+    """Camera sync offset from a shared clap -- robust to slow-motion audio.
+
+    Returns (off, confidence) where `off` (seconds, in the CLIP's own time base)
+    is defined so a cam1 time `t` corresponds to cam2 time `t - off` -- the
+    convention the trajectory builder uses. Equivalently
+    ``off = t_clap_cam1 - t_clap_cam2``. For ¼-speed slow-mo the clips (and this
+    offset) run 4x slow, so the caller divides by that factor to get real seconds.
+
+    The clap is the single dominant energy HUMP in each clip's opening `window`
+    seconds. Two things make this work where a sharp-spike detector fails on
+    slow-motion audio:
+      * `window` is large -- hand-started cameras can differ by many seconds, so
+        the same clap lands at very different positions in each file (e.g. 12 s
+        vs 43 s). Too small a window misses it in the later-started clip.
+      * `smooth` is broad (~0.15 s) -- slow-mo stretches a 20 ms clap into a
+        ~100 ms hump, so we smooth to that scale and take the hump's peak instead
+        of hunting for a spike that no longer exists.
+    Confidence is the hump's prominence over the ambient median (a real clap is
+    many x; footsteps ~1-2x). Returns (None, 0.0) if audio can't be read.
+    """
+    r1 = clap_envelope(video1, sr=8000, window=window, smooth=smooth)
+    r2 = clap_envelope(video2, sr=8000, window=window, smooth=smooth)
+    if r1 is None or r2 is None:
         return None, 0.0
-    e1 = _envelope(x1, sr)
-    e2 = _envelope(x2, sr)
-    k1, k2 = int(np.argmax(e1)), int(np.argmax(e2))
-
-    # isolation: how far each clap peak stands above its own ambient level
-    # (mean envelope outside a +-0.3 s guard around the peak).
-    def isolation(e, k):
-        g = int(0.3 * sr)
-        mask = np.ones(len(e), bool)
-        mask[max(0, k - g):k + g] = False
-        return float(e[k] / (e[mask].mean() + 1e-9))
-
-    off = (k1 - k2) / sr            # cam1 time t <-> cam2 time (t - off)
-    conf = min(isolation(e1, k1), isolation(e2, k2))
+    off = r1["clap_t"] - r2["clap_t"]   # cam1 time t <-> cam2 time (t - off)
+    conf = min(r1["prominence"], r2["prominence"])
     return off, conf

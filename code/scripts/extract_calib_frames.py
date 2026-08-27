@@ -113,6 +113,11 @@ def main() -> None:
 
     out = Path(args.out_dir)
     out.mkdir(parents=True, exist_ok=True)
+    # Clear any stale frames from a previous run so a re-extract never mixes
+    # frames from a different camera/video into this folder (that silently
+    # corrupts the intrinsics, and the reprojection error still looks fine).
+    for old in out.glob("frame_*.png"):
+        old.unlink()
     cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
     want = {f for f, _ in kept}
     saved, idx = 0, 0

@@ -56,9 +56,14 @@ def solve_extrinsics(cam1_video, cam2_video,
                      intr1_path="calibration/intrinsics_cam1.npz",
                      intr2_path="calibration/intrinsics_cam2.npz",
                      out="calibration/stereo_extrinsics.npz",
-                     rot_tol_deg=4.0, t_tol=0.15, verbose=True):
+                     rot_tol_deg=4.0, t_tol=0.15, max_holds=40, verbose=True):
     """Solve stereo extrinsics from two board-at-poses clips. Returns
-    (StereoExtrinsics, rms_px, n_pairs)."""
+    (StereoExtrinsics, rms_px, n_pairs).
+
+    `max_holds` caps the distinct board holds per camera (evenly spread across the
+    clip). The consistent-set search is O(N^2 * N) in the number of pose branches,
+    so a long clip with hundreds of holds explodes; ~40 holds is far more than the
+    ~15-20 needed for a good stereo solve and keeps the search fast."""
     def say(*a):
         if verbose:
             print(*a)
@@ -67,10 +72,17 @@ def solve_extrinsics(cam1_video, cam2_video,
     intr1 = Intrinsics.load(intr1_path)
     intr2 = Intrinsics.load(intr2_path)
 
+    def cap_holds(P):
+        hs = sorted(set(p["hold"] for p in P))
+        if len(hs) <= max_holds:
+            return P
+        keep = {hs[i] for i in np.linspace(0, len(hs) - 1, max_holds).astype(int)}
+        return [p for p in P if p["hold"] in keep]
+
     say(f"Scanning + PnP cam1 ({cam1_video})...")
-    P1 = poses(str(cam1_video), spec, intr1.camera_matrix, intr1.dist_coeffs)
+    P1 = cap_holds(poses(str(cam1_video), spec, intr1.camera_matrix, intr1.dist_coeffs))
     say(f"Scanning + PnP cam2 ({cam2_video})...")
-    P2 = poses(str(cam2_video), spec, intr2.camera_matrix, intr2.dist_coeffs)
+    P2 = cap_holds(poses(str(cam2_video), spec, intr2.camera_matrix, intr2.dist_coeffs))
     R1 = np.array([p["R"] for p in P1]); t1 = np.array([p["t"] for p in P1]); h1 = np.array([p["hold"] for p in P1])
     R2 = np.array([p["R"] for p in P2]); t2 = np.array([p["t"] for p in P2]); h2 = np.array([p["hold"] for p in P2])
     say(f"cam1 holds={len(set(h1))} ({len(P1)} branches), cam2 holds={len(set(h2))} ({len(P2)} branches)")

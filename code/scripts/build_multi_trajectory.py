@@ -6,6 +6,7 @@ Usage (from code/):  python scripts/build_multi_trajectory.py 7
 """
 import csv
 import sys
+import time
 from pathlib import Path
 
 import cv2
@@ -14,14 +15,18 @@ import numpy as np
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 from occ.calibration import Intrinsics  # noqa: E402
 from occ.stereo import StereoExtrinsics  # noqa: E402
-from occ.reconstruct import triangulate_stereo  # noqa: E402
+from occ.reconstruct import triangulate_stereo, triangulate_nview, reprojection_error  # noqa: E402
 from occ.tracking import detect_two_feet_ground  # noqa: E402
 from occ.filtering import clean_trajectory  # noqa: E402
 from occ.worldframe import WorldTransform  # noqa: E402
-from occ.audiosync import clap_offset  # noqa: E402
+from occ.audiosync import clap_offset, clap_envelope  # noqa: E402
 
 EXP_ROOT = Path("sessions")
 VIDEO_EXTS = (".MOV", ".mov", ".MP4", ".mp4", ".avi", ".AVI")
+# Pixel ¼-speed slow-mo stores 120 fps real footage tagged as ~30 fps (4x longer),
+# and the audio is slowed 4x too. So real time = file time / 4: multiply the file
+# fps by SLOWMO to get real seconds, and divide the clap offset by SLOWMO.
+SLOWMO = 4
 FEET = ["L_toe", "L_heel", "R_toe", "R_heel"]
 PAIRS = [("L_toe", "L_heel"), ("R_toe", "R_heel")]
 COLORS = {"L_toe": "#7C3AED", "L_heel": "#22A559", "R_toe": "#D6336C", "R_heel": "#1098AD"}
@@ -37,22 +42,77 @@ def find_cam_video(folder, cam):
 
 
 def track(video):
+    """Track markers at the 30 fps grid rate (every SLOWMO-th real frame). Uses
+    grab() to skip-decode the frames we don't score -> ~4x faster than decoding
+    all 120 fps. ts is in REAL seconds."""
     cap = cv2.VideoCapture(str(video))
-    fps = cap.get(cv2.CAP_PROP_FPS) or 240.0
+    fps = (cap.get(cv2.CAP_PROP_FPS) or 30.0) * SLOWMO   # -> real fps (120)
     ts, F, G = [], {k: [] for k in FEET}, []
     idx = 0
     while True:
-        ok, f = cap.read()
-        if not ok:
+        if not cap.grab():
             break
-        d = detect_two_feet_ground(f)
-        ts.append(idx / fps)
-        for k in FEET:
-            F[k].append(d[k] if d[k] is not None else (np.nan, np.nan))
-        G.append(d["ground"])
+        if idx % SLOWMO == 0:                            # score at real 30 fps
+            ok, f = cap.retrieve()
+            if not ok:
+                break
+            d = detect_two_feet_ground(f)
+            ts.append(idx / fps)
+            for k in FEET:
+                F[k].append(d[k] if d[k] is not None else (np.nan, np.nan))
+            G.append(d["ground"])
         idx += 1
     cap.release()
     return np.array(ts), {k: np.array(F[k], float) for k in FEET}, G
+
+
+def load_or_track(video, cache_path):
+    """Track, caching the 2D detections keyed by the clip's mtime so re-runs skip
+    the slow decode. Delete the *_track_cache.npz to force a fresh track."""
+    mt = video.stat().st_mtime
+    if cache_path.exists():
+        z = np.load(cache_path, allow_pickle=True)
+        if float(z["mtime"]) == mt:
+            F = {k: z[f"F_{k}"] for k in FEET}
+            return z["ts"], F, list(z["G"]), True
+    ts, F, G = track(video)
+    np.savez(cache_path, ts=ts, G=np.array(G, dtype=object), mtime=mt,
+             **{f"F_{k}": F[k] for k in FEET})
+    return ts, F, G, False
+
+
+def motion_offset(ts1, F1, ts2, F2, max_off=6.0, rate=60.0):
+    """Data-driven camera sync: find the time shift that best aligns the two
+    cameras' foot-marker PRESENCE (crossings happen at the same real instant in
+    both). Returns (offset_s such that cam2 + off = cam1, score) or (None, 0)."""
+    tmax = min(ts1[-1], ts2[-1]); dt = 1.0 / rate
+    g = np.arange(0.0, tmax, dt)
+
+    def presence(ts, F):
+        p = np.zeros(len(g))
+        for k in FEET:
+            good = ~np.isnan(F[k][:, 0])
+            if good.any():
+                j = np.clip(np.searchsorted(g, ts[good]), 0, len(g) - 1)
+                p[j] += 1.0
+        return p
+
+    p1 = presence(ts1, F1); p2 = presence(ts2, F2)
+    if p1.sum() < 3 or p2.sum() < 3:
+        return None, 0.0
+    p1 -= p1.mean(); p2 -= p2.mean()
+    smax = int(max_off / dt); best = None
+    for s in range(-smax, smax + 1):
+        if s >= 0:
+            a, b = p1[s:], p2[:len(p2) - s]
+        else:
+            a, b = p1[:len(p1) + s], p2[-s:]
+        if len(a) < rate:                                # need >=1 s of overlap
+            continue
+        score = float(np.dot(a, b)) / len(a)
+        if best is None or score > best[0]:
+            best = (score, s)
+    return best[1] * dt, best[0]
 
 
 def interp(ts, track, q, max_gap=0.05):
@@ -78,6 +138,39 @@ def ground_2d(G):
     return np.median(np.stack(twos), axis=0)
 
 
+def write_audiosync(folder, tid, ev1, ev2, off_real, slowmo, say, ds_hz=200):
+    """Save an audio-sync figure (clap jumps before/after alignment) and return a
+    DataFrame of the two energy envelopes on a common real-time grid (for MATLAB)."""
+    import pandas as pd
+    import matplotlib; matplotlib.use("Agg"); import matplotlib.pyplot as plt
+    t1, t2 = ev1["t"] / slowmo, ev2["t"] / slowmo          # real seconds
+    c1, c2 = ev1["clap_t"] / slowmo, ev2["clap_t"] / slowmo
+    tmax = max(c1, c2) + 3.0
+    fig, ax = plt.subplots(2, 1, figsize=(11, 6), sharex=True)
+    ax[0].plot(t1, ev1["env"], color="#1f77b4", lw=1.0, label=f"cam1 (clap @ {c1:.2f}s)")
+    ax[0].plot(t2, ev2["env"], color="#d6336c", lw=1.0, label=f"cam2 (clap @ {c2:.2f}s)")
+    ax[0].axvline(c1, color="#1f77b4", ls="--", lw=1); ax[0].axvline(c2, color="#d6336c", ls="--", lw=1)
+    ax[0].set_title(f"{tid}: audio energy — clap jumps BEFORE alignment  "
+                    f"(time diff cam1-cam2 = {off_real:+.3f}s)")
+    ax[0].set_ylabel("energy"); ax[0].legend(fontsize=8); ax[0].set_xlim(0, tmax)
+    ax[1].plot(t1, ev1["env"], color="#1f77b4", lw=1.0, label="cam1")
+    ax[1].plot(t2 + off_real, ev2["env"], color="#d6336c", lw=1.0, label=f"cam2 shifted {off_real:+.3f}s")
+    ax[1].axvline(c1, color="k", ls="--", lw=1)
+    ax[1].set_title("AFTER alignment — the two claps line up")
+    ax[1].set_xlabel("time (s, real)"); ax[1].set_ylabel("energy"); ax[1].legend(fontsize=8)
+    fig.tight_layout(); fig.savefig(folder / f"{tid}_audiosync.png", dpi=110); plt.close(fig)
+    # common real-time grid for MATLAB (raw + aligned cam2)
+    g = np.arange(0.0, tmax, 1.0 / ds_hz)
+    df = pd.DataFrame({
+        "time_s": np.round(g, 4),
+        "cam1_env": np.round(np.interp(g, t1, ev1["env"], np.nan, np.nan), 4),
+        "cam2_env": np.round(np.interp(g, t2, ev2["env"], np.nan, np.nan), 4),
+        "cam2_env_aligned": np.round(np.interp(g, t2 + off_real, ev2["env"], np.nan, np.nan), 4),
+    })
+    say(f"Audio-sync figure -> {tid}_audiosync.png  (clap jumps + alignment)")
+    return df
+
+
 def main():
     if len(sys.argv) < 2:
         raise SystemExit("usage: build_multi_trajectory.py <test id>")
@@ -90,6 +183,7 @@ def main():
     if cam1 is None or cam2 is None:
         raise SystemExit(f"[{tid}] need cam1/cam2 clips in {folder.resolve()}")
 
+    t_start = time.perf_counter()
     log = [f"Test: {tid}", ""]
 
     def say(m=""):
@@ -100,33 +194,160 @@ def main():
     extr = StereoExtrinsics.load("calibration/stereo_extrinsics.npz")
     R, T = extr.R, extr.t.reshape(3, 1)
 
+    # Projection matrices in cam1's normalised frame (P = [R|t], no K).
+    P1n = np.hstack([np.eye(3), np.zeros((3, 1))])
+    P2n = np.hstack([extr.R, extr.t.reshape(3, 1)])
+    # Optional 3rd camera: compose cam3->cam1 through the cam2<->cam3 calibration.
+    cam3 = find_cam_video(folder, "cam3")
+    intr3 = P3n = None
+    c23_path = Path("calibration/stereo_extrinsics_cam2cam3.npz")
+    if cam3 is not None and c23_path.exists():
+        intr3 = Intrinsics.load("calibration/intrinsics_cam3.npz")
+        e23 = StereoExtrinsics.load(c23_path)            # cam3 relative to cam2
+        R31 = e23.R @ extr.R                             # X_c3 = R_b(R_a X + t_a) + t_b
+        t31 = (e23.R @ extr.t.reshape(3, 1)) + e23.t.reshape(3, 1)
+        P3n = np.hstack([R31, t31])
+    elif cam3 is not None:
+        cam3 = None                                      # clip present but not calibrated
+
+    def tri_robust(pts, Ps):
+        """N-view triangulation that drops a single disagreeing view. With 3
+        cameras a bad detection in one (e.g. the slightly noisier cam3) would
+        otherwise corrupt the least-squares point; if the worst view's normalised
+        reprojection error is a clear outlier, re-triangulate without it."""
+        X = triangulate_nview(pts, Ps)
+        if len(pts) >= 3:
+            errs = [reprojection_error(X, [p], [P]) for p, P in zip(pts, Ps)]
+            w = int(np.argmax(errs))
+            if errs[w] > max(0.004, 2.5 * float(np.median(errs))):   # ~0.004 norm ≈ 6 px
+                keep = [i for i in range(len(pts)) if i != w]
+                X = triangulate_nview([pts[i] for i in keep], [Ps[i] for i in keep])
+        return X
+
+    def norm_pts(intr, pix):
+        """Undistort tracked pixel points to normalised coords (NaN preserved)."""
+        out = np.full((len(pix), 2), np.nan)
+        good = ~np.isnan(pix[:, 0])
+        if good.any():
+            out[good] = cv2.undistortPoints(
+                pix[good].reshape(-1, 1, 2).astype(np.float64),
+                intr.camera_matrix, intr.dist_coeffs).reshape(-1, 2)
+        return out
+
     def tri(p1, p2):
         X = triangulate_stereo(p1.reshape(1, 2), p2.reshape(1, 2),
                                intr1.camera_matrix, intr1.dist_coeffs,
                                intr2.camera_matrix, intr2.dist_coeffs, R, T)
         return X[0]
 
-    say(f"[{tid}] tracking {cam1.name} ..."); ts1, F1, G1 = track(cam1)
-    say(f"[{tid}] tracking {cam2.name} ..."); ts2, F2, G2 = track(cam2)
-    for k in FEET:
-        say(f"  {k:7s} cam1 {100*np.mean(~np.isnan(F1[k][:,0])):.0f}%  "
-            f"cam2 {100*np.mean(~np.isnan(F2[k][:,0])):.0f}%")
+    def match_reds(c1, c2):
+        """Match the two static red obstacle markers across cameras by geometry
+        (lowest triangulation reprojection error), NOT by floor height -- they
+        sit at different heights on the obstacle. Returns (2, 3) in cam-1 frame."""
+        n1 = cv2.undistortPoints(c1.reshape(-1, 1, 2).astype(np.float64),
+                                 intr1.camera_matrix, intr1.dist_coeffs).reshape(-1, 2)
+        n2 = cv2.undistortPoints(c2.reshape(-1, 1, 2).astype(np.float64),
+                                 intr2.camera_matrix, intr2.dist_coeffs).reshape(-1, 2)
+        P1 = np.hstack([np.eye(3), np.zeros((3, 1))]); P2 = np.hstack([R, T])
+        best = None
+        for perm in ([0, 1], [1, 0]):
+            Xs, err = [], 0.0
+            for i in range(2):
+                Xh = cv2.triangulatePoints(P1, P2, n1[i].reshape(2, 1), n2[perm[i]].reshape(2, 1))
+                X = (Xh[:3] / Xh[3]).ravel(); Xs.append(X)
+                for P, n in ((P1, n1[i]), (P2, n2[perm[i]])):
+                    p = P @ np.append(X, 1.0); p = p[:2] / p[2]
+                    err += float(np.hypot(p[0] - n[0], p[1] - n[1]))
+            if best is None or err < best[0]:
+                best = (err, np.array(Xs))
+        return best[1]
 
-    off, conf = clap_offset(cam1, cam2)
-    say(f"Sync: cam2 + {off:.3f}s = cam1  (conf {conf:.0f})")
+    ts1, F1, G1, c1cached = load_or_track(cam1, folder / f"{tid}_cam1_track_cache.npz")
+    say(f"[{tid}] {cam1.name}: {'cached' if c1cached else 'tracked'}")
+    ts2, F2, G2, c2cached = load_or_track(cam2, folder / f"{tid}_cam2_track_cache.npz")
+    say(f"[{tid}] {cam2.name}: {'cached' if c2cached else 'tracked'}")
+    ts3 = F3 = G3 = None
+    if cam3 is not None:
+        ts3, F3, G3, c3cached = load_or_track(cam3, folder / f"{tid}_cam3_track_cache.npz")
+        say(f"[{tid}] {cam3.name}: {'cached' if c3cached else 'tracked'}  (3-camera mode)")
+    for k in FEET:
+        c3s = f"  cam3 {100*np.mean(~np.isnan(F3[k][:,0])):.0f}%" if cam3 is not None else ""
+        say(f"  {k:7s} cam1 {100*np.mean(~np.isnan(F1[k][:,0])):.0f}%  "
+            f"cam2 {100*np.mean(~np.isnan(F2[k][:,0])):.0f}%{c3s}")
+
+    # --- Camera sync: prefer the clap (first prominent audio hump); else motion -
+    ev1 = clap_envelope(cam1); ev2 = clap_envelope(cam2)
+    if ev1 is not None and ev2 is not None:
+        c1r, c2r = ev1["clap_t"] / SLOWMO, ev2["clap_t"] / SLOWMO   # real seconds
+        off_clap = c1r - c2r
+        conf = min(ev1["prominence"], ev2["prominence"])
+        say(f"Clap detected: cam1 @ {c1r:.3f}s (x{ev1['prominence']:.0f} above ambient), "
+            f"cam2 @ {c2r:.3f}s (x{ev2['prominence']:.0f})")
+        say(f"  time difference (cam1 - cam2) = {off_clap:+.3f}s  [real]")
+    else:
+        off_clap, conf = 0.0, 0.0
+        say("Clap: audio could not be read")
+    off_mot, mscore = motion_offset(ts1, F1, ts2, F2)
+    say(f"Sync clap:   cam2 + {off_clap:.3f}s  (conf {conf:.0f})")
+    if off_mot is not None:
+        say(f"Sync motion: cam2 + {off_mot:.3f}s  (score {mscore:.2f})")
+    if conf >= 4:
+        off, src = off_clap, "clap"
+    elif off_mot is not None:
+        off, src = off_mot, "motion (weak clap)"
+    else:
+        off, src = off_clap, "clap (no motion)"
+    say(f"-> using {src} sync: cam2 + {off:.3f}s = cam1")
+
+    off3 = None
+    if cam3 is not None:
+        ev3 = clap_envelope(cam3)
+        if ev3 is not None and ev1 is not None:
+            off3 = ev1["clap_t"] / SLOWMO - ev3["clap_t"] / SLOWMO
+            say(f"Sync clap:   cam3 + {off3:.3f}s = cam1  "
+                f"(cam3 clap @ {ev3['clap_t']/SLOWMO:.3f}s, x{ev3['prominence']:.0f})")
+        else:
+            say("cam3 clap not found -- dropping cam3 from reconstruction")
+            cam3 = None
+
+    # --- Audio-sync figure + data (see the clap jumps and how they align) ------
+    audio_df = None
+    if ev1 is not None and ev2 is not None:
+        audio_df = write_audiosync(folder, tid, ev1, ev2, off_clap, SLOWMO, say)
 
     W_path = Path("calibration/world_transform.npz")
     W = WorldTransform.load(W_path) if W_path.exists() else None
 
-    grid = ts1[::4]
+    grid = ts1
+    # Camera list for n-view reconstruction: (ts, detections, intrinsics, proj, offset).
+    cams = [(ts1, F1, intr1, P1n, 0.0), (ts2, F2, intr2, P2n, off)]
+    if cam3 is not None and off3 is not None:
+        cams.append((ts3, F3, intr3, P3n, off3))
+    say(f"Reconstructing from {len(cams)} cameras (marker needs >=2 to get a 3D point)")
+
     world = {}
+    n_clean, n_gap = 0, 0                                 # cam1+cam2 vs cam3 gap-fill
     for k in FEET:
-        a = interp(ts1, F1[k], grid); b = interp(ts2, F2[k], grid - off)
+        # per camera: normalised, time-aligned 2D points on the common grid
+        NP = [norm_pts(intr, interp(ts, Fk[k], grid - o)) for (ts, Fk, intr, _P, o) in cams]
+        Pmats = [P for (_ts, _F, _intr, P, _o) in cams]
         X = np.full((len(grid), 3), np.nan)
         for i in range(len(grid)):
-            if not np.isnan(np.concatenate([a[i], b[i]])).any():
-                X[i] = tri(a[i], b[i])
+            have = [c for c in range(len(cams)) if not np.isnan(NP[c][i, 0])]
+            if len(have) < 2:
+                continue
+            # cam1+cam2 is the cleanest pair (0.96 px); when both see the marker,
+            # use only them -- adding the noisier cam3 dilutes precision. cam3
+            # earns its place by FILLING GAPS: frames where cam1 or cam2 missed.
+            if 0 in have and 1 in have:
+                use = [0, 1]; n_clean += 1
+            else:
+                use = have; n_gap += 1
+            X[i] = tri_robust([NP[c][i] for c in use], [Pmats[c] for c in use])
         world[k] = W.apply(X) if W is not None else X
+    if cam3 is not None:
+        say(f"  reconstructed points: {n_clean} from cam1+cam2, "
+            f"{n_gap} gap-filled using cam3")
 
     # per-foot rigid-pair filter + plausibility gate
     for toe, heel in PAIRS:
@@ -141,19 +362,13 @@ def main():
                               (np.abs(world[k][:, 0]) > 3) | (np.abs(world[k][:, 1]) > 3))
         world[k][bad] = np.nan
 
-    # --- Ground markers: two static reds -> 2 fixed 3D points -----------------
+    # --- Obstacle markers: two static reds at ANY height -> 2 fixed 3D points --
     ground_w = None
     c1 = ground_2d(G1); c2 = ground_2d(G2)
     if c1 is not None and c2 is not None:
-        best = None
-        for perm in ([0, 1], [1, 0]):               # match cam1<->cam2 by floor fit
-            pts = np.array([tri(c1[i], c2[perm[i]]) for i in range(2)])
-            ptsw = W.apply(pts) if W is not None else pts
-            zerr = np.abs(ptsw[:, 2]).sum()          # both should sit on the floor (Z~0)
-            if best is None or zerr < best[0]:
-                best = (zerr, ptsw)
-        ground_w = best[1]
-        say(f"Ground markers (world, mm): "
+        pts = match_reds(c1, c2)                     # geometry match (not floor-bound)
+        ground_w = W.apply(pts) if W is not None else pts
+        say(f"Obstacle markers (world, mm): "
             + " | ".join(f"({p[0]*1000:.0f},{p[1]*1000:.0f},Z={p[2]*1000:.0f})" for p in ground_w))
 
     fps = 1 / np.median(np.diff(grid))
@@ -181,6 +396,8 @@ def main():
                 "y_mm": np.round(ground_w[:, 1] * 1000, 2),
                 "z_mm": np.round(ground_w[:, 2] * 1000, 2),
             }).to_excel(xw, sheet_name="ground", index=False)
+        if audio_df is not None:                         # clap-sync envelopes (MATLAB)
+            audio_df.to_excel(xw, sheet_name="audio", index=False)
 
     # --- Plot -----------------------------------------------------------------
     import matplotlib; matplotlib.use("Agg"); import matplotlib.pyplot as plt
@@ -198,6 +415,10 @@ def main():
 
     say(f"\nSaved {xlsx_path.name} (sheets: markers"
         + (" + ground" if ground_w is not None else "") + f"), {tid}_trajectory.png")
+
+    elapsed = time.perf_counter() - t_start
+    mins, secs = divmod(elapsed, 60)
+    say(f"Processing time: {int(mins)} min {secs:.1f} s  ({elapsed:.1f} s total)")
     (folder / f"{tid}_run.txt").write_text("\n".join(log) + "\n", encoding="utf-8")
 
 
