@@ -23,13 +23,23 @@ from occ.audiosync import clap_offset, clap_envelope  # noqa: E402
 
 EXP_ROOT = Path("sessions")
 VIDEO_EXTS = (".MOV", ".mov", ".MP4", ".mp4", ".avi", ".AVI")
-# Pixel ¼-speed slow-mo stores 120 fps real footage tagged as ~30 fps (4x longer),
-# and the audio is slowed 4x too. So real time = file time / 4: multiply the file
-# fps by SLOWMO to get real seconds, and divide the clap offset by SLOWMO.
-SLOWMO = 4
+# Recording-mode factor, auto-detected per session from the clip's reported fps:
+#   NORMAL 60 fps  -> SLOWMO=1 (file time == real time, audio at real speed)
+#   1/4 SLOW-MO    -> SLOWMO=4 (stores 120 fps real as ~30 fps, audio slowed 4x)
+# The pipeline multiplies the file fps by SLOWMO for real time, divides the clap
+# offset by SLOWMO, and tracks every SLOWMO-th frame (~30-60 Hz either way).
+SLOWMO = 4                                   # set by detect_slowmo() in main()
 FEET = ["L_toe", "L_heel", "R_toe", "R_heel"]
 PAIRS = [("L_toe", "L_heel"), ("R_toe", "R_heel")]
 COLORS = {"L_toe": "#7C3AED", "L_heel": "#22A559", "R_toe": "#D6336C", "R_heel": "#1098AD"}
+
+
+def detect_slowmo(video):
+    """1 for normal (~60 fps) recording, 4 for 1/4 slow-mo (~30 fps file)."""
+    cap = cv2.VideoCapture(str(video))
+    f = cap.get(cv2.CAP_PROP_FPS) or 30.0
+    cap.release()
+    return 1 if f >= 45 else 4
 
 
 def find_cam_video(folder, cam):
@@ -188,6 +198,10 @@ def main():
 
     def say(m=""):
         print(m); log.append(m)
+
+    global SLOWMO
+    SLOWMO = detect_slowmo(cam1)
+    say(f"Recording mode: {'normal (~60 fps)' if SLOWMO == 1 else 'slow-mo 1/4 (120 fps real)'}")
 
     intr1 = Intrinsics.load("calibration/intrinsics_cam1.npz")
     intr2 = Intrinsics.load("calibration/intrinsics_cam2.npz")

@@ -1,8 +1,9 @@
 Test: test09
 
-[test09] cam1.mp4 (cam1): tracked in 98.9s
-[test09] cam2.mp4 (cam2): tracked in 100.3s
-[test09] cam3.mp4 (cam3): tracked in 120.1s
+Recording mode: slow-mo 1/4 (120 fps real)
+[test09] cam1.mp4 (cam1): loaded cache in 0.0s
+[test09] cam2.mp4 (cam2): loaded cache in 0.0s
+[test09] cam3.mp4 (cam3): loaded cache in 0.0s
 [test09] 3-camera mode
   L_toe   cam1 24%  cam2 21%  cam3 17%
   L_heel  cam1 24%  cam2 21%  cam3 17%
@@ -27,4 +28,4 @@ Output: world frame (Z = height above floor)
   R_heel  18% reconstructed
 
 Saved test09_trajectory.xlsx (sheets: markers + ground), test09_trajectory.png
-Processing time: 5 min 24.6 s  (324.6 s total)
+Processing time: 0 min 4.1 s  (4.1 s total)
