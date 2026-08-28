@@ -132,6 +132,15 @@ def main():
     say(f"floor-flatness residual = {W.rms_mm:.2f} mm   camera height = {cam_h:.0f} mm")
     if W.rms_mm >= 3.0:
         say("WARNING: floor residual >= 3 mm -- floor board not flat / not well seen?")
+
+    # --- Axis readout: which way +X/+Y point (so you can flip if it's not what you want)
+    w1 = W.apply(np.zeros((1, 3)))[0] * 1000                       # cam1 in world
+    w2 = W.apply((-extr_active.R.T @ extr_active.t.reshape(3)).reshape(1, 3))[0] * 1000  # cam2
+    say(f"Axis check (mm):  cam1 world (X={w1[0]:.0f}, Y={w1[1]:.0f})   "
+        f"cam2 world (X={w2[0]:.0f}, Y={w2[1]:.0f})")
+    say(f"  +X points toward the {'cam1' if w1[0] > w2[0] else 'cam2'} side; "
+        f"+Y toward the {'cam1' if w1[1] > w2[1] else 'cam2'} side.")
+    say(f"  To negate BOTH X and Y (180 deg about Z): python scripts/flip_world_xy.py {cid}")
     W.save(folder / "world_transform.npz")
     shutil.copy(folder / "world_transform.npz", ACTIVE / "world_transform.npz")
 
