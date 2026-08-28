@@ -438,11 +438,15 @@ def main():
     for k in FEET:
         say(f"  {k:7s} {100*np.mean(~np.isnan(world[k][:,0])):.0f}% reconstructed")
 
-    # Time is referenced to the CLAP (t=0 = the sync moment, all cameras aligned):
-    # t<0 is pre-clap setup, t>0 is the synced experiment.
+    # Time is referenced to the CLAP (t=0 = the sync moment, all cameras aligned),
+    # and the pre-clap setup (t<0, cameras not all synced) is dropped from the output.
     clap0 = ev1["clap_t"] / SLOWMO if ev1 is not None else 0.0
     t_out = grid - clap0
-    say(f"Time origin: t=0 at the clap (cam1 @ {clap0:.2f}s into its clip)")
+    keep = t_out >= 0
+    t_out = t_out[keep]
+    world = {k: world[k][keep] for k in FEET}
+    say(f"Time origin: t=0 at the clap (cam1 @ {clap0:.2f}s in); "
+        f"kept {int(keep.sum())} post-clap frames, dropped {int((~keep).sum())} pre-clap")
 
     # --- Excel output: one .xlsx, sheet "markers" (feet, per-frame) + "ground" -
     import pandas as pd

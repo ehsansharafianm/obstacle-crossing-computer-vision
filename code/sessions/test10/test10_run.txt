@@ -25,7 +25,7 @@ Output: world frame (Z = height above floor)
   L_heel  27% reconstructed
   R_toe   23% reconstructed
   R_heel  23% reconstructed
-Time origin: t=0 at the clap (cam1 @ 19.08s into its clip)
+Time origin: t=0 at the clap (cam1 @ 19.08s in); kept 4917 post-clap frames, dropped 1135 pre-clap
 
 Saved test10_trajectory.xlsx (sheets: markers + ground), test10_trajectory.png
-Processing time: 0 min 15.6 s  (15.6 s total)
+Processing time: 0 min 15.5 s  (15.5 s total)
