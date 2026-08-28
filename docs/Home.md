@@ -11,7 +11,8 @@ Obsidian vault for the camera + IMU obstacle-crossing study. Code lives in
 - [[next-steps]] — roadmap & what to do next (living checklist)
 
 ### Daily logs  (`daily-log/` — one note per working day: what we did, challenges, next moves)
-- [[2026-08-19]] — **clean 3D foot-clearance trajectory (the milestone)**: purple/green markers, calib06, clap
+- [[2026-08-28]] — **3× Pixel-8 ultrawide rig (the milestone)**: 3-camera clap sync, n-view 3D, test10 L16/R12 mm
+- [[2026-08-19]] — **clean 3D foot-clearance trajectory**: purple/green markers, calib06, clap
 - [[2026-08-18]] — per-test structure, the max-area bug, and audio-clap sync
 
 ### Design

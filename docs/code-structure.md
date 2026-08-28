@@ -32,13 +32,22 @@ See [[session-workflow]] for the calibrate → record → process loop.
 | `audiosync.py` | **Camera sync from a shared clap** — `clap_offset` aligns the two clips by the loudest-isolated audio peak (needs `imageio-ffmpeg`). |
 
 ## Scripts (run from `code/`)
-**Main workflow** (one command each; double-click wrappers `run_calib.bat` / `run_test.bat`)
-- `build_calibration.py` — **`run_calib N [normal|large]`**: stereo extrinsics
-  (`run_stereo_ransac`) + world frame from a session's 4 board clips → active calibration.
-- `build_foot_trajectory.py` — **`run_test N`**: one foot (toe+heel) → clap-sync →
-  triangulate → rigid-pair + plausibility filter → world frame → CSV + plot.
-- `build_multi_trajectory.py` — **6-marker bilateral**: both feet (L/R toe+heel) +
-  two static ground markers (`detect_two_feet_ground`, closest-pair gating).
+**Main workflow** (one command each)
+- `build_calibration.py` — **`build_calibration N [large]`**: 3-camera calibration —
+  cam1↔cam2 + floor **and** cam2↔cam3 (cam2 = hub) from a session's board clips → active
+  calibration. Board-hold cap keeps the geometric matcher bounded; **reports +X/+Y axis
+  directions** after the floor step.
+- `build_multi_trajectory.py` — **the main tool, `build_multi_trajectory N`**: both feet
+  (L/R toe+heel) + obstacle red markers, **2 or 3 cameras** (auto-detects a cam3 clip +
+  cam2↔cam3 calibration). Auto-detects recording mode (60 fps vs ¼ slow-mo), **clap-seeded
+  rigid-shoe sync** for all cameras, **n-view** reconstruction (cam1+cam2 core, cam3 gap-fill),
+  world frame, **time zeroed at the clap**, xlsx (markers/ground/audio) + plots + audio figure,
+  and **auto-writes clap-aligned review clips** to `synced_videos/`.
+- `sync_cut.py` — **`sync_cut N [sec]`**: cut a session's clips so they start N s before the
+  clap → time-aligned `synced_videos/<cam>_synced.mp4` for manual review (analysis untouched).
+- `flip_world_xy.py` — **`flip_world_xy [calibNN]`**: negate world X & Y (180° about Z) when the
+  axis convention is reversed. Reversible.
+- `build_foot_trajectory.py` — legacy single-foot (`run_test N`); superseded by build_multi_trajectory.
 
 **Intrinsics (per lens, rarely rerun)**
 - `make_calib_board.py` / `make_big_calib_board.py` — generate printable ChArUco boards (small / big tiled).

@@ -4,20 +4,23 @@ Living checklist of what's next, from the current state onward. Each stage marks
 **[You]** (physical lab work) vs **[Code]** (I build/run it). See
 [[camera-imu-workflow]] for the full design and [[open-items]] for decisions.
 
-## Where we are  (see [[progress-log]] for the full story)
-- ✅ Intrinsics (both cams, STABLE) + stereo extrinsics (0.74 px, 2.04 m baseline)
-- ✅ Accuracy validated — **~2 mm** (rod/wand test)
-- ✅ Marker tracking, camera sync, moving 3D trajectory (validated on wand)
-- ✅ **World-frame transform** — Z = height above floor (0.47 mm floor residual,
-  1011 mm camera height); saved `calibration/world_transform.npz`
-- ⚙️ Foot pilot runs end-to-end (green toe + red heel) → world-frame CSV; refining
-  trajectory quality (bigger markers ✓, clap sync + controlled motion pending)
-- ✅ MATLAB viewer `matlab/plot_trajectory.m`; advisor deck; all pushed to GitHub
+## Where we are  (see [[progress-log]] + [[2026-08-28]] for the full story)
+- ✅ **3× Pixel-8 rig** (ultrawide 60 fps): per-phone intrinsics, one-command 3-camera
+  calibration (calib10: cam1↔cam2 0.71 px, floor 0.52 mm, cam2↔cam3 0.97 px).
+- ✅ **Robust clap sync for all 3 cameras** (rigid-shoe-arbitrated, clap-seeded) — survives
+  quiet claps + far-apart start times.
+- ✅ **n-view 3D + world frame** — cam1+cam2 precision core (widest baseline), cam3 gap-fill.
+  test10: **L 16 mm / R 12 mm** toe-heel std, full lift/landing arcs.
+- ✅ Output time **zeroed at the clap**; **aligned review clips** auto-generated; **axis
+  readout + flip** tool; MATLAB viewer shows trajectory + all-3-camera clap sync.
+- ⚙️ **Clearance metric** not yet computed (next); coverage limited by cam2/cam3 detection.
 
-### Remaining scope (this phase)
-- [ ] Clean foot trajectories (bigger markers + clap + controlled motion → verify)
-- [ ] Robust occlusion handling (coverage report; later 3rd camera / 6-marker cluster)
-- [ ] Wrap into the one-command session pipeline ([[automated-pipeline]])
+### Immediate scope (this phase)
+- [ ] **Clearance computation** — per crossing, min gap between each foot marker and the
+  obstacle top (red markers stay ON the obstacle → auto-measure each of 6 heights).
+- [ ] Optional: velocity outlier filter (kill the last spike); marker-colour swap to
+  unlock cam2/cam3 coverage (colours absent from the lab background).
+- [ ] Run the **6-obstacle-height protocol** (cameras fixed; one session per height).
 
 ---
 
@@ -79,6 +82,8 @@ Shake out the whole chain before full collection.
 ---
 
 ## Immediate: what to do next
-1. Decide **2 vs 3 cameras** (leaning 3) and the **origin/axes** convention.
-2. Prepare the **accuracy-check rod** (rigid, 2 markers, measured length).
-3. When set up in the lab: record the **Stage 2 extrinsics** video.
+1. **[Code]** Add the **clearance computation** to `build_multi_trajectory` (foot vs
+   obstacle-top red markers, per crossing, per foot).
+2. **[You]** Record the **6 obstacle heights** (cameras fixed = calib10 stays valid; reds on
+   the obstacle top; clap at start; one session per height → `test11`, `test12`, ...).
+3. **[Code, optional]** Velocity outlier filter; marker-colour swap to raise cam2/cam3 coverage.
