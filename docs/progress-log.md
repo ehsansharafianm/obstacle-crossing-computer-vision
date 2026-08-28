@@ -82,7 +82,7 @@ What we've built and proven, in order. See [[code-structure]] for the code,
   the principal point ~110 px). Recording mode **auto-detected** (normal 60 fps vs ¼ slow-mo).
 - **3-camera calibration in one command** (`build_calibration N`): cam1↔cam2 + floor +
   cam2↔cam3 (cam2 = hub); board-hold cap stops the matcher exploding on long clips. It also
-  now **reports the +X/+Y axis directions**, and `flip_world_xy.py` negates X/Y in one line.
+  now **reports the +X/+Y axis directions** (set by the floor-board placement).
 - **Robust clap sync** (`occ.audiosync` + `build_multi_trajectory`): rigid-shoe-arbitrated,
   **clap-seeded** — survives quiet claps and cameras that start many seconds apart (found a
   +13.7 s cam3 offset). All three cameras synced; the audio figure/sheet cover all three.

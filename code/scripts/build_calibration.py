@@ -140,7 +140,7 @@ def main():
         f"cam2 world (X={w2[0]:.0f}, Y={w2[1]:.0f})")
     say(f"  +X points toward the {'cam1' if w1[0] > w2[0] else 'cam2'} side; "
         f"+Y toward the {'cam1' if w1[1] > w2[1] else 'cam2'} side.")
-    say(f"  To negate BOTH X and Y (180 deg about Z): python scripts/flip_world_xy.py {cid}")
+    say("  (Set X/Y by how you lay the floor board: origin corner, long edge = +X, short = +Y.)")
     W.save(folder / "world_transform.npz")
     shutil.copy(folder / "world_transform.npz", ACTIVE / "world_transform.npz")
 

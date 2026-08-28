@@ -19,7 +19,7 @@ Reconstructing from 3 cameras (marker needs >=2 to get a 3D point)
   reconstructed points: 5284 from cam1+cam2 (wide baseline), 1394 gap-filled with cam3
   L foot: toe-heel 302 mm, dropped 212 outliers
   R foot: toe-heel 291 mm, dropped 400 outliers
-Obstacle markers (world, mm): (365,-267,Z=389) | (-180,-264,Z=361)
+Obstacle markers (world, mm): (-365,267,Z=389) | (180,264,Z=361)
 Output: world frame (Z = height above floor)
   L_toe   27% reconstructed
   L_heel  27% reconstructed
@@ -33,4 +33,4 @@ Aligned review clips (start 2 s before the clap) -> synced_videos/:
   cam2: synced_videos/cam2_synced.mp4 already exists -- kept
   cam3: synced_videos/cam3_synced.mp4 already exists -- kept
   3 aligned review clip(s) -> sessions\test10\synced_videos
-Processing time: 0 min 15.4 s  (15.4 s total)
+Processing time: 0 min 15.1 s  (15.1 s total)

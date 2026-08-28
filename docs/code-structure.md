@@ -45,9 +45,10 @@ See [[session-workflow]] for the calibrate → record → process loop.
   and **auto-writes clap-aligned review clips** to `synced_videos/`.
 - `sync_cut.py` — **`sync_cut N [sec]`**: cut a session's clips so they start N s before the
   clap → time-aligned `synced_videos/<cam>_synced.mp4` for manual review (analysis untouched).
-- `flip_world_xy.py` — **`flip_world_xy [calibNN]`**: negate world X & Y (180° about Z) when the
-  axis convention is reversed. Reversible.
 - `build_foot_trajectory.py` — legacy single-foot (`run_test N`); superseded by build_multi_trajectory.
+
+World X/Y are set by how the floor board is laid (origin corner, long edge = +X, short = +Y);
+build_calibration prints the resulting directions so you confirm them per calibration.
 
 **Intrinsics (per lens, rarely rerun)**
 - `make_calib_board.py` / `make_big_calib_board.py` — generate printable ChArUco boards (small / big tiled).
