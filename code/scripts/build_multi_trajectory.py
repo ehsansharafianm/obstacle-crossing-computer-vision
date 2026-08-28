@@ -488,6 +488,14 @@ def main():
     say(f"\nSaved {xlsx_path.name} (sheets: markers"
         + (" + ground" if ground_w is not None else "") + f"), {tid}_trajectory.png")
 
+    # --- Aligned review clips (for MANUAL viewing only; analysis used the originals)
+    say("Aligned review clips (start 2 s before the clap) -> synced_videos/:")
+    try:
+        from sync_cut import cut_session
+        cut_session(folder, pre=2.0, log=say)
+    except Exception as e:
+        say(f"  sync_cut skipped: {e}")
+
     elapsed = time.perf_counter() - t_start
     mins, secs = divmod(elapsed, 60)
     say(f"Processing time: {int(mins)} min {secs:.1f} s  ({elapsed:.1f} s total)")
