@@ -438,9 +438,15 @@ def main():
     for k in FEET:
         say(f"  {k:7s} {100*np.mean(~np.isnan(world[k][:,0])):.0f}% reconstructed")
 
+    # Time is referenced to the CLAP (t=0 = the sync moment, all cameras aligned):
+    # t<0 is pre-clap setup, t>0 is the synced experiment.
+    clap0 = ev1["clap_t"] / SLOWMO if ev1 is not None else 0.0
+    t_out = grid - clap0
+    say(f"Time origin: t=0 at the clap (cam1 @ {clap0:.2f}s into its clip)")
+
     # --- Excel output: one .xlsx, sheet "markers" (feet, per-frame) + "ground" -
     import pandas as pd
-    cols = {"time_s": np.round(grid, 4)}
+    cols = {"time_s": np.round(t_out, 4)}
     for k in FEET:
         for a, axname in enumerate("xyz"):
             cols[f"{k}_{axname}_mm"] = np.round(world[k][:, a] * 1000, 2)
@@ -462,14 +468,17 @@ def main():
     import matplotlib; matplotlib.use("Agg"); import matplotlib.pyplot as plt
     fig, ax = plt.subplots(2, 1, figsize=(11, 8))
     for k in FEET:
-        ax[0].plot(grid, world[k][:, 2] * 1000, color=COLORS[k], lw=1.3, label=k)
-    ax[0].set_title(f"{tid}: marker HEIGHT over time  (both feet)")
-    ax[0].set_xlabel("time (s)"); ax[0].set_ylabel("height Z (mm)"); ax[0].legend(fontsize=8, ncol=4)
+        ax[0].plot(t_out, world[k][:, 2] * 1000, color=COLORS[k], lw=1.3, label=k)
+    ax[0].axvline(0, color="k", ls=":", lw=1)             # t=0 = clap
+    ax[0].set_title(f"{tid}: marker HEIGHT over time  (both feet;  t=0 = clap)")
+    ax[0].set_xlabel("time (s, 0 = clap)"); ax[0].set_ylabel("height Z (mm)")
+    ax[0].legend(fontsize=8, ncol=4)
     for toe, heel in PAIRS:
         d = np.linalg.norm(world[toe] - world[heel], axis=1) * 1000
-        ax[1].plot(grid, d, lw=1.0, label=f"{toe[0]} foot toe-heel  (std {np.nanstd(d):.0f} mm)")
+        ax[1].plot(t_out, d, lw=1.0, label=f"{toe[0]} foot toe-heel  (std {np.nanstd(d):.0f} mm)")
+    ax[1].axvline(0, color="k", ls=":", lw=1)
     ax[1].set_title("Toe-heel distance per foot (rigid shoe -> flat)")
-    ax[1].set_xlabel("time (s)"); ax[1].set_ylabel("mm"); ax[1].legend(fontsize=9)
+    ax[1].set_xlabel("time (s, 0 = clap)"); ax[1].set_ylabel("mm"); ax[1].legend(fontsize=9)
     fig.tight_layout(); fig.savefig(folder / f"{tid}_trajectory.png", dpi=110)
 
     say(f"\nSaved {xlsx_path.name} (sheets: markers"
