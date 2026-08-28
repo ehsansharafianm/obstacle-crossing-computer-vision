@@ -294,50 +294,76 @@ def main():
         say(f"  {k:7s} cam1 {100*np.mean(~np.isnan(F1[k][:,0])):.0f}%  "
             f"cam2 {100*np.mean(~np.isnan(F2[k][:,0])):.0f}%{c3s}")
 
-    # --- Camera sync: prefer the clap (first prominent audio hump); else motion -
+    # --- Camera sync via the RIGID-SHOE constraint (robust to a weak clap) -----
+    # The true offset makes each rigid shoe's toe-heel distance most constant, so
+    # we scan offsets for the minimum toe-heel scatter (among high-overlap ones).
+    # This is decisive where the clap is quiet (low confidence) or the motion sync
+    # locks onto a false periodic peak. Clap/motion are logged for reference.
+    grid = ts1                                            # cam1 timeline (real s)
+
+    def rigidity(off, tsB, FB, tri_pair, stride=2):
+        q = grid[::stride]; stds = []; ntot = 0
+        for toe, heel in PAIRS:
+            P = {}
+            for k in (toe, heel):
+                a = interp(ts1, F1[k], q); b = interp(tsB, FB[k], q - off)
+                X = np.full((len(q), 3), np.nan)
+                for i in np.where(~np.isnan(a[:, 0]) & ~np.isnan(b[:, 0]))[0]:
+                    X[i] = tri_pair(a[i], b[i])
+                P[k] = X
+            d = np.linalg.norm(P[toe] - P[heel], axis=1) * 1000
+            d = d[~np.isnan(d)]; ntot += len(d)
+            if len(d) >= 5:
+                md = np.median(d); d2 = d[np.abs(d - md) < 100]
+                if len(d2) >= 5:
+                    stds.append(np.std(d2))
+        return (float(np.mean(stds)) if stds else 1e9), ntot
+
+    def pick_offset(tsB, FB, tri_pair):
+        coarse = [(o, *rigidity(o, tsB, FB, tri_pair)) for o in np.arange(-9.0, 9.01, 0.5)]
+        nmax = max((c[2] for c in coarse), default=0) or 1
+        good = [c for c in coarse if c[2] >= 0.4 * nmax and c[1] < 1e8] or coarse
+        o0 = min(good, key=lambda c: c[1])[0]
+        best = None
+        for o in np.arange(o0 - 0.4, o0 + 0.4, 0.02):
+            s, n = rigidity(o, tsB, FB, tri_pair)
+            if n >= 0.4 * nmax and (best is None or s < best[0]):
+                best = (s, o)
+        return best[1], best[0]
+
     ev1 = clap_envelope(cam1); ev2 = clap_envelope(cam2)
-    if ev1 is not None and ev2 is not None:
-        c1r, c2r = ev1["clap_t"] / SLOWMO, ev2["clap_t"] / SLOWMO   # real seconds
-        off_clap = c1r - c2r
-        conf = min(ev1["prominence"], ev2["prominence"])
-        say(f"Clap detected: cam1 @ {c1r:.3f}s (x{ev1['prominence']:.0f} above ambient), "
-            f"cam2 @ {c2r:.3f}s (x{ev2['prominence']:.0f})")
-        say(f"  time difference (cam1 - cam2) = {off_clap:+.3f}s  [real]")
-    else:
-        off_clap, conf = 0.0, 0.0
-        say("Clap: audio could not be read")
-    off_mot, mscore = motion_offset(ts1, F1, ts2, F2)
-    say(f"Sync clap:   cam2 + {off_clap:.3f}s  (conf {conf:.0f})")
+    off_clap = (ev1["clap_t"] / SLOWMO - ev2["clap_t"] / SLOWMO) if (ev1 and ev2) else None
+    off_mot, _ = motion_offset(ts1, F1, ts2, F2)
+    if off_clap is not None:
+        say(f"Clap: cam1 @ {ev1['clap_t']/SLOWMO:.3f}s (x{ev1['prominence']:.0f}), "
+            f"cam2 @ {ev2['clap_t']/SLOWMO:.3f}s (x{ev2['prominence']:.0f})  -> cam2 {off_clap:+.3f}s")
     if off_mot is not None:
-        say(f"Sync motion: cam2 + {off_mot:.3f}s  (score {mscore:.2f})")
-    if conf >= 4:
-        off, src = off_clap, "clap"
-    elif off_mot is not None:
-        off, src = off_mot, "motion (weak clap)"
-    else:
-        off, src = off_clap, "clap (no motion)"
-    say(f"-> using {src} sync: cam2 + {off:.3f}s = cam1")
+        say(f"Motion candidate: cam2 {off_mot:+.3f}s")
+    off, off_std = pick_offset(ts2, F2, tri)
+    tag = "  [clap agrees]" if (off_clap is not None and abs(off - off_clap) < 0.3) else "  [clap OFF]"
+    say(f"-> cam2 sync: {off:+.3f}s = cam1   (toe-heel scatter {off_std:.0f} mm){tag}")
 
     off3 = None
     if cam3 is not None:
+        def tri13(pa, pb):
+            return triangulate_stereo(pa.reshape(1, 2), pb.reshape(1, 2),
+                                      intr1.camera_matrix, intr1.dist_coeffs,
+                                      intr3.camera_matrix, intr3.dist_coeffs,
+                                      R31, t31.reshape(3, 1))[0]
+        off3, off3_std = pick_offset(ts3, F3, tri13)
         ev3 = clap_envelope(cam3)
-        if ev3 is not None and ev1 is not None:
-            off3 = ev1["clap_t"] / SLOWMO - ev3["clap_t"] / SLOWMO
-            say(f"Sync clap:   cam3 + {off3:.3f}s = cam1  "
-                f"(cam3 clap @ {ev3['clap_t']/SLOWMO:.3f}s, x{ev3['prominence']:.0f})")
-        else:
-            say("cam3 clap not found -- dropping cam3 from reconstruction")
-            cam3 = None
+        c3clap = (ev1["clap_t"] / SLOWMO - ev3["clap_t"] / SLOWMO) if (ev1 and ev3) else None
+        tag3 = "  [clap agrees]" if (c3clap is not None and abs(off3 - c3clap) < 0.3) else ""
+        say(f"-> cam3 sync: {off3:+.3f}s = cam1   (toe-heel scatter {off3_std:.0f} mm){tag3}")
 
     # --- Audio-sync figure + data (see the clap jumps and how they align) ------
     audio_df = None
     if ev1 is not None and ev2 is not None:
-        audio_df = write_audiosync(folder, tid, ev1, ev2, off_clap, SLOWMO, say)
+        audio_df = write_audiosync(folder, tid, ev1, ev2, off, SLOWMO, say)
 
     W_path = Path("calibration/world_transform.npz")
     W = WorldTransform.load(W_path) if W_path.exists() else None
 
-    grid = ts1
     # Camera list for n-view reconstruction: (ts, detections, intrinsics, proj, offset).
     cams = [(ts1, F1, intr1, P1n, 0.0), (ts2, F2, intr2, P2n, off)]
     if cam3 is not None and off3 is not None:
@@ -345,7 +371,7 @@ def main():
     say(f"Reconstructing from {len(cams)} cameras (marker needs >=2 to get a 3D point)")
 
     world = {}
-    n_by_views = {2: 0, 3: 0}                             # points reconstructed from 2 / 3 cams
+    n_clean, n_gap = 0, 0                                 # clean cam1+cam2 vs cam3 gap-fill
     for k in FEET:
         # per camera: normalised, time-aligned 2D points on the common grid
         NP = [norm_pts(intr, interp(ts, Fk[k], grid - o)) for (ts, Fk, intr, _P, o) in cams]
@@ -355,15 +381,18 @@ def main():
             have = [c for c in range(len(cams)) if not np.isnan(NP[c][i, 0])]
             if len(have) < 2:
                 continue
-            # Use every camera that saw the marker; tri_robust averages the views
-            # (lower noise) and drops one that clearly disagrees (occlusion / bad
-            # detection). No hardcoded "core pair" -- whichever cams agree win.
-            X[i] = tri_robust([NP[c][i] for c in have], [Pmats[c] for c in have])
-            n_by_views[len(have)] = n_by_views.get(len(have), 0) + 1
+            # cam1+cam2 is the precision pair (best sync + pose here). When both
+            # see the marker, use only them; cam3 -- noisier sync + a pose chained
+            # through the weaker cam1<->cam2 -- earns its place by FILLING GAPS
+            # (frames where cam1 or cam2 missed), which dropped coverage.
+            if 0 in have and 1 in have:
+                use = [0, 1]; n_clean += 1
+            else:
+                use = have; n_gap += 1
+            X[i] = tri_robust([NP[c][i] for c in use], [Pmats[c] for c in use])
         world[k] = W.apply(X) if W is not None else X
     if cam3 is not None:
-        say(f"  reconstructed points: {n_by_views.get(3,0)} from 3 cams, "
-            f"{n_by_views.get(2,0)} from 2 cams")
+        say(f"  reconstructed points: {n_clean} from cam1+cam2, {n_gap} gap-filled with cam3")
 
     # per-foot rigid-pair filter + plausibility gate
     for toe, heel in PAIRS:
