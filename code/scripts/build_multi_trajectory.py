@@ -301,12 +301,12 @@ def main():
     # locks onto a false periodic peak. Clap/motion are logged for reference.
     grid = ts1                                            # cam1 timeline (real s)
 
-    def rigidity(off, tsB, FB, tri_pair, stride=2):
+    def rigidity(offB, refTs, refF, tsB, FB, tri_pair, refOff=0.0, stride=2):
         q = grid[::stride]; stds = []; ntot = 0
         for toe, heel in PAIRS:
             P = {}
             for k in (toe, heel):
-                a = interp(ts1, F1[k], q); b = interp(tsB, FB[k], q - off)
+                a = interp(refTs, refF[k], q - refOff); b = interp(tsB, FB[k], q - offB)
                 X = np.full((len(q), 3), np.nan)
                 for i in np.where(~np.isnan(a[:, 0]) & ~np.isnan(b[:, 0]))[0]:
                     X[i] = tri_pair(a[i], b[i])
@@ -319,14 +319,15 @@ def main():
                     stds.append(np.std(d2))
         return (float(np.mean(stds)) if stds else 1e9), ntot
 
-    def pick_offset(tsB, FB, tri_pair):
-        coarse = [(o, *rigidity(o, tsB, FB, tri_pair)) for o in np.arange(-9.0, 9.01, 0.5)]
+    def pick_offset(refTs, refF, tsB, FB, tri_pair, refOff=0.0):
+        a = (refTs, refF, tsB, FB, tri_pair, refOff)
+        coarse = [(o, *rigidity(o, *a)) for o in np.arange(-9.0, 9.01, 0.5)]
         nmax = max((c[2] for c in coarse), default=0) or 1
         good = [c for c in coarse if c[2] >= 0.4 * nmax and c[1] < 1e8] or coarse
         o0 = min(good, key=lambda c: c[1])[0]
         best = None
         for o in np.arange(o0 - 0.4, o0 + 0.4, 0.02):
-            s, n = rigidity(o, tsB, FB, tri_pair)
+            s, n = rigidity(o, *a)
             if n >= 0.4 * nmax and (best is None or s < best[0]):
                 best = (s, o)
         return best[1], best[0]
@@ -339,22 +340,25 @@ def main():
             f"cam2 @ {ev2['clap_t']/SLOWMO:.3f}s (x{ev2['prominence']:.0f})  -> cam2 {off_clap:+.3f}s")
     if off_mot is not None:
         say(f"Motion candidate: cam2 {off_mot:+.3f}s")
-    off, off_std = pick_offset(ts2, F2, tri)
+    off, off_std = pick_offset(ts1, F1, ts2, F2, tri)        # cam2 vs cam1 (cam1+cam2)
     tag = "  [clap agrees]" if (off_clap is not None and abs(off - off_clap) < 0.3) else "  [clap OFF]"
     say(f"-> cam2 sync: {off:+.3f}s = cam1   (toe-heel scatter {off_std:.0f} mm){tag}")
 
     off3 = None
     if cam3 is not None:
-        def tri13(pa, pb):
-            return triangulate_stereo(pa.reshape(1, 2), pb.reshape(1, 2),
-                                      intr1.camera_matrix, intr1.dist_coeffs,
+        def tri23(p2, p3):                                  # CLEAN cam2<->cam3 pose
+            return triangulate_stereo(p2.reshape(1, 2), p3.reshape(1, 2),
+                                      intr2.camera_matrix, intr2.dist_coeffs,
                                       intr3.camera_matrix, intr3.dist_coeffs,
-                                      R31, t31.reshape(3, 1))[0]
-        off3, off3_std = pick_offset(ts3, F3, tri13)
+                                      e23.R, e23.t.reshape(3, 1))[0]
+        # Sync cam3 against cam2 through the CLEAN cam2<->cam3 pair (both sampled on
+        # cam1's grid, so off3 stays relative to cam1). Better than chaining cam3's
+        # sync through the weaker cam1<->cam2.
+        off3, off3_std = pick_offset(ts2, F2, ts3, F3, tri23, refOff=off)
         ev3 = clap_envelope(cam3)
         c3clap = (ev1["clap_t"] / SLOWMO - ev3["clap_t"] / SLOWMO) if (ev1 and ev3) else None
         tag3 = "  [clap agrees]" if (c3clap is not None and abs(off3 - c3clap) < 0.3) else ""
-        say(f"-> cam3 sync: {off3:+.3f}s = cam1   (toe-heel scatter {off3_std:.0f} mm){tag3}")
+        say(f"-> cam3 sync: {off3:+.3f}s = cam1   (cam2+cam3 scatter {off3_std:.0f} mm){tag3}")
 
     # --- Audio-sync figure + data (see the clap jumps and how they align) ------
     audio_df = None
@@ -381,10 +385,10 @@ def main():
             have = [c for c in range(len(cams)) if not np.isnan(NP[c][i, 0])]
             if len(have) < 2:
                 continue
-            # cam1+cam2 is the precision pair (best sync + pose here). When both
-            # see the marker, use only them; cam3 -- noisier sync + a pose chained
-            # through the weaker cam1<->cam2 -- earns its place by FILLING GAPS
-            # (frames where cam1 or cam2 missed), which dropped coverage.
+            # cam1+cam2 is the precision core: it has the WIDEST baseline (~1.98 m
+            # vs cam2<->cam3's ~1.11 m), and triangulation precision scales with
+            # baseline -- so despite cam2<->cam3 having lower calibration RMS, the
+            # cam1+cam2 pair reconstructs tighter. cam3 fills gaps where cam1/cam2 miss.
             if 0 in have and 1 in have:
                 use = [0, 1]; n_clean += 1
             else:
@@ -392,7 +396,7 @@ def main():
             X[i] = tri_robust([NP[c][i] for c in use], [Pmats[c] for c in use])
         world[k] = W.apply(X) if W is not None else X
     if cam3 is not None:
-        say(f"  reconstructed points: {n_clean} from cam1+cam2, {n_gap} gap-filled with cam3")
+        say(f"  reconstructed points: {n_clean} from cam1+cam2 (wide baseline), {n_gap} gap-filled with cam3")
 
     # per-foot rigid-pair filter + plausibility gate
     for toe, heel in PAIRS:
