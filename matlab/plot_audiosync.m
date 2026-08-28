@@ -34,17 +34,23 @@ function plot_audiosync(id)
     fig = figure('Name', 'Audio clap sync', 'Color', 'w', ...
                  'Tag', 'audiosyncfig', 'Position', [200 200 900 560]);
 
+    cams = {'cam1', 'cam2', 'cam3'};
+    cc = [0.12 0.47 0.71; 0.84 0.19 0.42; 0.17 0.63 0.17];
     ax1 = subplot(2, 1, 1, 'Parent', fig); hold(ax1, 'on'); grid(ax1, 'on');
-    plot(ax1, t, T.cam1_env, 'Color', [0.12 0.47 0.71], 'LineWidth', 1.0);
-    plot(ax1, t, T.cam2_env, 'Color', [0.84 0.19 0.42], 'LineWidth', 1.0);
-    title(ax1, 'Audio energy - clap jumps BEFORE alignment (the spikes are the claps)');
-    ylabel(ax1, 'energy'); legend(ax1, {'cam1', 'cam2'}, 'Location', 'northeast');
-
     ax2 = subplot(2, 1, 2, 'Parent', fig); hold(ax2, 'on'); grid(ax2, 'on');
-    plot(ax2, t, T.cam1_env, 'Color', [0.12 0.47 0.71], 'LineWidth', 1.0);
-    plot(ax2, t, T.cam2_env_aligned, 'Color', [0.84 0.19 0.42], 'LineWidth', 1.0);
-    title(ax2, 'AFTER alignment - the two claps line up');
+    leg = {};
+    for i = 1:numel(cams)
+        raw = [cams{i} '_env']; aln = [cams{i} '_env_aligned'];
+        if ismember(raw, T.Properties.VariableNames)
+            plot(ax1, t, T.(raw), 'Color', cc(i, :), 'LineWidth', 1.0);
+            plot(ax2, t, T.(aln), 'Color', cc(i, :), 'LineWidth', 1.0);
+            leg{end+1} = cams{i}; %#ok<AGROW>
+        end
+    end
+    title(ax1, 'Audio energy - clap jumps BEFORE alignment (the spikes are the claps)');
+    ylabel(ax1, 'energy'); legend(ax1, leg, 'Location', 'northeast');
+    title(ax2, 'AFTER alignment - all claps line up');
     xlabel(ax2, 'time (s, real)'); ylabel(ax2, 'energy');
-    legend(ax2, {'cam1', 'cam2 (shifted)'}, 'Location', 'northeast');
+    legend(ax2, leg, 'Location', 'northeast');
     linkaxes([ax1 ax2], 'x');
 end

@@ -52,17 +52,18 @@ def find_cam_video(folder, cam):
 
 
 def track(video):
-    """Track markers at the 30 fps grid rate (every SLOWMO-th real frame). Uses
-    grab() to skip-decode the frames we don't score -> ~4x faster than decoding
-    all 120 fps. ts is in REAL seconds."""
+    """Track markers at the grid rate (every SLOWMO-th real frame). Uses grab() to
+    skip-decode the frames we don't score. Each foot = the CLOSEST toe/heel pair
+    (clutter-safe: a same-coloured background object with no partner is ignored).
+    ts is in REAL seconds."""
     cap = cv2.VideoCapture(str(video))
-    fps = (cap.get(cv2.CAP_PROP_FPS) or 30.0) * SLOWMO   # -> real fps (120)
+    fps = (cap.get(cv2.CAP_PROP_FPS) or 30.0) * SLOWMO
     ts, F, G = [], {k: [] for k in FEET}, []
     idx = 0
     while True:
         if not cap.grab():
             break
-        if idx % SLOWMO == 0:                            # score at real 30 fps
+        if idx % SLOWMO == 0:
             ok, f = cap.retrieve()
             if not ok:
                 break
@@ -125,7 +126,7 @@ def motion_offset(ts1, F1, ts2, F2, max_off=6.0, rate=60.0):
     return best[1] * dt, best[0]
 
 
-def interp(ts, track, q, max_gap=0.05):
+def interp(ts, track, q, max_gap=0.08):    # bridge short detection flicker
     out = np.full((len(q), 2), np.nan)
     good = ~np.isnan(track[:, 0])
     if good.sum() >= 2:
@@ -148,37 +149,37 @@ def ground_2d(G):
     return np.median(np.stack(twos), axis=0)
 
 
-def write_audiosync(folder, tid, ev1, ev2, off_real, slowmo, say, ds_hz=200):
-    """Save an audio-sync figure (clap jumps before/after alignment) and return a
-    DataFrame of the two energy envelopes on a common real-time grid (for MATLAB)."""
+def write_audiosync(folder, tid, cams_audio, slowmo, say, ds_hz=200):
+    """Save an audio-sync figure and return a DataFrame of the clap envelopes for
+    ALL cameras (for MATLAB). `cams_audio` is a list of (label, ev, off) where off
+    is the shift that aligns that camera to cam1's timeline (cam1's off = 0)."""
     import pandas as pd
     import matplotlib; matplotlib.use("Agg"); import matplotlib.pyplot as plt
-    t1, t2 = ev1["t"] / slowmo, ev2["t"] / slowmo          # real seconds
-    c1, c2 = ev1["clap_t"] / slowmo, ev2["clap_t"] / slowmo
-    tmax = max(c1, c2) + 3.0
+    colors = ["#1f77b4", "#d6336c", "#2ca02c", "#e6a010"]
+    claps = [ev["clap_t"] / slowmo for _, ev, _ in cams_audio]
+    tmax = max(claps) + 3.0
     fig, ax = plt.subplots(2, 1, figsize=(11, 6), sharex=True)
-    ax[0].plot(t1, ev1["env"], color="#1f77b4", lw=1.0, label=f"cam1 (clap @ {c1:.2f}s)")
-    ax[0].plot(t2, ev2["env"], color="#d6336c", lw=1.0, label=f"cam2 (clap @ {c2:.2f}s)")
-    ax[0].axvline(c1, color="#1f77b4", ls="--", lw=1); ax[0].axvline(c2, color="#d6336c", ls="--", lw=1)
-    ax[0].set_title(f"{tid}: audio energy — clap jumps BEFORE alignment  "
-                    f"(time diff cam1-cam2 = {off_real:+.3f}s)")
+    for i, (lab, ev, off) in enumerate(cams_audio):
+        t = ev["t"] / slowmo; c = ev["clap_t"] / slowmo; col = colors[i % len(colors)]
+        ax[0].plot(t, ev["env"], color=col, lw=1.0, label=f"{lab} (clap @ {c:.2f}s)")
+        ax[0].axvline(c, color=col, ls="--", lw=1)
+        ax[1].plot(t + off, ev["env"], color=col, lw=1.0,
+                   label=(f"{lab} shifted {off:+.2f}s" if off else lab))
+    ax[0].set_title(f"{tid}: audio energy — clap jumps BEFORE alignment ({len(cams_audio)} cameras)")
     ax[0].set_ylabel("energy"); ax[0].legend(fontsize=8); ax[0].set_xlim(0, tmax)
-    ax[1].plot(t1, ev1["env"], color="#1f77b4", lw=1.0, label="cam1")
-    ax[1].plot(t2 + off_real, ev2["env"], color="#d6336c", lw=1.0, label=f"cam2 shifted {off_real:+.3f}s")
-    ax[1].axvline(c1, color="k", ls="--", lw=1)
-    ax[1].set_title("AFTER alignment — the two claps line up")
+    ax[1].axvline(claps[0], color="k", ls="--", lw=1)
+    ax[1].set_title("AFTER alignment — all claps line up")
     ax[1].set_xlabel("time (s, real)"); ax[1].set_ylabel("energy"); ax[1].legend(fontsize=8)
     fig.tight_layout(); fig.savefig(folder / f"{tid}_audiosync.png", dpi=110); plt.close(fig)
-    # common real-time grid for MATLAB (raw + aligned cam2)
+    # common real-time grid for MATLAB: raw + aligned envelope per camera
     g = np.arange(0.0, tmax, 1.0 / ds_hz)
-    df = pd.DataFrame({
-        "time_s": np.round(g, 4),
-        "cam1_env": np.round(np.interp(g, t1, ev1["env"], np.nan, np.nan), 4),
-        "cam2_env": np.round(np.interp(g, t2, ev2["env"], np.nan, np.nan), 4),
-        "cam2_env_aligned": np.round(np.interp(g, t2 + off_real, ev2["env"], np.nan, np.nan), 4),
-    })
-    say(f"Audio-sync figure -> {tid}_audiosync.png  (clap jumps + alignment)")
-    return df
+    cols = {"time_s": np.round(g, 4)}
+    for lab, ev, off in cams_audio:
+        t = ev["t"] / slowmo
+        cols[f"{lab}_env"] = np.round(np.interp(g, t, ev["env"], np.nan, np.nan), 4)
+        cols[f"{lab}_env_aligned"] = np.round(np.interp(g, t + off, ev["env"], np.nan, np.nan), 4)
+    say(f"Audio-sync figure -> {tid}_audiosync.png  ({len(cams_audio)} cameras, clap jumps + alignment)")
+    return pd.DataFrame(cols)
 
 
 def main():
@@ -319,11 +320,15 @@ def main():
                     stds.append(np.std(d2))
         return (float(np.mean(stds)) if stds else 1e9), ntot
 
-    def pick_offset(refTs, refF, tsB, FB, tri_pair, refOff=0.0):
+    def pick_offset(refTs, refF, tsB, FB, tri_pair, refOff=0.0, seeds=()):
+        # Candidate offsets: any seeds (clap/motion -- crucial when the true offset
+        # is outside the coarse window, e.g. cameras started >9 s apart) plus a
+        # coarse global scan. Then refine around the best (max overlap, min scatter).
         a = (refTs, refF, tsB, FB, tri_pair, refOff)
-        coarse = [(o, *rigidity(o, *a)) for o in np.arange(-9.0, 9.01, 0.5)]
-        nmax = max((c[2] for c in coarse), default=0) or 1
-        good = [c for c in coarse if c[2] >= 0.4 * nmax and c[1] < 1e8] or coarse
+        cand = [s for s in seeds if s is not None] + list(np.arange(-9.0, 9.01, 0.5))
+        scored = [(o, *rigidity(o, *a)) for o in cand]
+        nmax = max((c[2] for c in scored), default=0) or 1
+        good = [c for c in scored if c[2] >= 0.4 * nmax and c[1] < 1e8] or scored
         o0 = min(good, key=lambda c: c[1])[0]
         best = None
         for o in np.arange(o0 - 0.4, o0 + 0.4, 0.02):
@@ -340,30 +345,35 @@ def main():
             f"cam2 @ {ev2['clap_t']/SLOWMO:.3f}s (x{ev2['prominence']:.0f})  -> cam2 {off_clap:+.3f}s")
     if off_mot is not None:
         say(f"Motion candidate: cam2 {off_mot:+.3f}s")
-    off, off_std = pick_offset(ts1, F1, ts2, F2, tri)        # cam2 vs cam1 (cam1+cam2)
+    off, off_std = pick_offset(ts1, F1, ts2, F2, tri, seeds=(off_clap, off_mot))  # cam2 vs cam1
     tag = "  [clap agrees]" if (off_clap is not None and abs(off - off_clap) < 0.3) else "  [clap OFF]"
     say(f"-> cam2 sync: {off:+.3f}s = cam1   (toe-heel scatter {off_std:.0f} mm){tag}")
 
-    off3 = None
+    off3 = None; ev3 = None
     if cam3 is not None:
         def tri23(p2, p3):                                  # CLEAN cam2<->cam3 pose
             return triangulate_stereo(p2.reshape(1, 2), p3.reshape(1, 2),
                                       intr2.camera_matrix, intr2.dist_coeffs,
                                       intr3.camera_matrix, intr3.dist_coeffs,
                                       e23.R, e23.t.reshape(3, 1))[0]
-        # Sync cam3 against cam2 through the CLEAN cam2<->cam3 pair (both sampled on
-        # cam1's grid, so off3 stays relative to cam1). Better than chaining cam3's
-        # sync through the weaker cam1<->cam2.
-        off3, off3_std = pick_offset(ts2, F2, ts3, F3, tri23, refOff=off)
         ev3 = clap_envelope(cam3)
         c3clap = (ev1["clap_t"] / SLOWMO - ev3["clap_t"] / SLOWMO) if (ev1 and ev3) else None
-        tag3 = "  [clap agrees]" if (c3clap is not None and abs(off3 - c3clap) < 0.3) else ""
+        if ev3 is not None:
+            say(f"Clap: cam3 @ {ev3['clap_t']/SLOWMO:.3f}s (x{ev3['prominence']:.0f})  -> cam3 {c3clap:+.3f}s")
+        # Sync cam3 against cam2 through the CLEAN cam2<->cam3 pair, SEEDED by the
+        # cam3 clap (its true offset can be well outside the coarse window when the
+        # cameras started many seconds apart). off3 stays relative to cam1's grid.
+        off3, off3_std = pick_offset(ts2, F2, ts3, F3, tri23, refOff=off, seeds=(c3clap,))
+        tag3 = "  [clap agrees]" if (c3clap is not None and abs(off3 - c3clap) < 0.3) else "  [clap OFF]"
         say(f"-> cam3 sync: {off3:+.3f}s = cam1   (cam2+cam3 scatter {off3_std:.0f} mm){tag3}")
 
-    # --- Audio-sync figure + data (see the clap jumps and how they align) ------
+    # --- Audio-sync figure + data for ALL cameras (clap jumps + alignment) -----
     audio_df = None
     if ev1 is not None and ev2 is not None:
-        audio_df = write_audiosync(folder, tid, ev1, ev2, off, SLOWMO, say)
+        cams_audio = [("cam1", ev1, 0.0), ("cam2", ev2, off)]
+        if ev3 is not None and off3 is not None:
+            cams_audio.append(("cam3", ev3, off3))
+        audio_df = write_audiosync(folder, tid, cams_audio, SLOWMO, say)
 
     W_path = Path("calibration/world_transform.npz")
     W = WorldTransform.load(W_path) if W_path.exists() else None
