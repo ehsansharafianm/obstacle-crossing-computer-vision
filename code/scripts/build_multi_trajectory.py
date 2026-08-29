@@ -263,7 +263,9 @@ def main():
     def match_reds(c1, c2):
         """Match the two static red obstacle markers across cameras by geometry
         (lowest triangulation reprojection error), NOT by floor height -- they
-        sit at different heights on the obstacle. Returns (2, 3) in cam-1 frame."""
+        sit at different heights on the obstacle. Returns (points (2,3) in cam-1
+        frame, mean normalised reprojection error) -- the error flags frames where
+        a foot occludes a red (the match is then inconsistent -> high error)."""
         n1 = cv2.undistortPoints(c1.reshape(-1, 1, 2).astype(np.float64),
                                  intr1.camera_matrix, intr1.dist_coeffs).reshape(-1, 2)
         n2 = cv2.undistortPoints(c2.reshape(-1, 1, 2).astype(np.float64),
@@ -280,7 +282,7 @@ def main():
                     err += float(np.hypot(p[0] - n[0], p[1] - n[1]))
             if best is None or err < best[0]:
                 best = (err, np.array(Xs))
-        return best[1]
+        return best[1], best[0] / 4.0                   # points, mean reproj error (norm)
 
     def timed_track(cam, tag):
         t0 = time.perf_counter()
@@ -440,32 +442,38 @@ def main():
             r = np.array(fr, float)
             return r[np.argsort(r[:, 0])][:2] if len(r) >= 2 else None
 
-        n_obs = 0
+        n_obs = n_rej = 0
         for i in range(len(grid)):
             r1, r2 = reds2(G1[i]), reds2(G2[j2[i]])
             if r1 is None or r2 is None:
                 continue
-            pw = W.apply(match_reds(r1, r2))
-            pw = pw[np.argsort(pw[:, 0])]                # sort by world X -> stable 1/2
+            pts, rerr = match_reds(r1, r2)
+            if rerr > 0.02:                             # ~28 px: gross mismatch (occlusion)
+                n_rej += 1; continue
+            pw = W.apply(pts)
+            pw = pw[np.argsort(pw[:, 0])]               # sort by world X -> stable 1/2
             world["obstacle1"][i] = pw[0]; world["obstacle2"][i] = pw[1]
             n_obs += 1
         say(f"Obstacle markers reconstructed in {n_obs}/{len(grid)} frames "
-            f"(per-frame; can move between crossings)")
-        # Light outlier rejection: a foot occluding a red mid-crossing throws a
-        # phantom point. Drop points > 80 mm from a short rolling median (keeps the
-        # real between-crossing height steps, which the rolling median follows).
-        wroll = max(5, int(round(0.5 / np.median(np.diff(grid)))))
+            f"({n_rej} frames rejected for high reprojection error)")
+        # Robust rolling-median outlier rejection (2 passes): drop points far from a
+        # ~1 s rolling median by an ADAPTIVE (MAD-based) threshold. This catches the
+        # clustered occlusion spikes while still following real between-crossing steps.
+        wroll = max(7, int(round(1.0 / np.median(np.diff(grid)))))
         for name in OBST:
             arr = world[name]
-            for a in range(3):
-                col = arr[:, a]
-                med = np.full(len(col), np.nan)
-                for i in range(len(col)):
-                    seg = col[max(0, i - wroll):i + wroll + 1]
-                    seg = seg[~np.isnan(seg)]
-                    if len(seg):
-                        med[i] = np.median(seg)
-                arr[~np.isnan(col) & (np.abs(col - med) > 0.08)] = np.nan
+            for _pass in range(2):
+                for a in range(3):
+                    col = arr[:, a]
+                    med = np.full(len(col), np.nan)
+                    for i in range(len(col)):
+                        seg = col[max(0, i - wroll):i + wroll + 1]
+                        seg = seg[~np.isnan(seg)]
+                        if len(seg):
+                            med[i] = np.median(seg)
+                    dev = np.abs(col - med)
+                    mad = np.nanmedian(dev) + 1e-6
+                    arr[~np.isnan(col) & (dev > max(0.03, 4 * mad))] = np.nan
 
     fps = 1 / np.median(np.diff(grid))
     for k in FEET:                                       # smooth the feet only
