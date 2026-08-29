@@ -1,0 +1,40 @@
+Test: test12
+
+Run started: 2026-08-29 13:27:58
+Recording mode: normal (~60 fps)
+[test12] cam1.mp4 (cam1): tracked in 345.8s
+[test12] cam2.mp4 (cam2): tracked in 271.0s
+[test12] cam3.mp4 (cam3): tracked in 243.1s
+[test12] 3-camera mode
+  L_toe   cam1 46%  cam2 21%  cam3 23%
+  L_heel  cam1 46%  cam2 21%  cam3 23%
+  R_toe   cam1 46%  cam2 18%  cam3 26%
+  R_heel  cam1 46%  cam2 18%  cam3 26%
+Clap: cam1 @ 11.347s (x10), cam2 @ 5.487s (x10)  -> cam2 +5.860s
+Motion candidate: cam2 +5.233s
+-> cam2 sync: +5.840s = cam1   (toe-heel scatter 13 mm)  [clap agrees]
+Clap: cam3 @ 2.541s (x13)  -> cam3 +8.806s
+-> cam3 sync: +8.786s = cam1   (cam2+cam3 scatter 17 mm)  [clap agrees]
+Audio-sync figure -> test12_audiosync.png  (3 cameras, clap jumps + alignment)
+Reconstructing from 3 cameras (marker needs >=2 to get a 3D point)
+  reconstructed points: 3606 from cam1+cam2 (wide baseline), 1652 gap-filled with cam3
+  L foot: toe-heel 272 mm, dropped 122 outliers
+  R foot: toe-heel 283 mm, dropped 31 outliers
+Obstacle markers (world, mm): (289,25,Z=341) | (-280,7,Z=358)
+Output: world frame (Z = height above floor)
+  L_toe   22% reconstructed
+  L_heel  22% reconstructed
+  R_toe   22% reconstructed
+  R_heel  22% reconstructed
+Time origin: t=0 at the clap (cam1 @ 11.35s in); kept 5146 post-clap frames, dropped 674 pre-clap
+
+Saved test12_trajectory.xlsx (sheets: markers + obstacle), test12_trajectory.png
+Aligned review clips (start 2 s before the clap) -> synced_videos/:
+  cam1: clap @ 11.35s -> synced_videos/cam1_synced.mp4
+  cam2: clap @ 5.49s -> synced_videos/cam2_synced.mp4
+  cam3: clap @ 2.54s -> synced_videos/cam3_synced.mp4
+  3 aligned review clip(s) -> sessions\test12\synced_videos
+
+Run started:  2026-08-29 13:27:58
+Run finished: 2026-08-29 13:43:56
+Total processing time: 15 min 58.3 s  (958.3 s)
