@@ -80,16 +80,22 @@ function plot_trajectory(csvfile)
     xlabel(axZ, 'time (s)'); ylabel(axZ, 'Z (mm)');
 
     % --- plot each marker, storing its graphics handles ---
+    % Feet are drawn as connected trajectories; the obstacle markers are quasi-
+    % static, so they're drawn as scatter POINTS (and kept that way regardless of
+    % the Line/Scatter toggle below).
     H = containers.Map();
+    isObstacle = containers.Map();
     for k = 1:nM
         m = markers{k}; c = cmap(k, :);
         x = T.([m '_x_mm']); y = T.([m '_y_mm']); z = T.([m '_z_mm']);
+        obs = startsWith(m, 'obstacle'); isObstacle(m) = obs;
+        if obs, ls = 'none'; mk = '.'; ms = 12; else, ls = '-'; mk = 'none'; ms = 7; end
         h = gobjects(1, 4);
-        h(1) = plot3(ax3, x, y, z, '-', 'Color', c, 'Marker', 'none', ...
-                     'MarkerSize', 7, 'LineWidth', 1.2, 'DisplayName', m);
-        h(2) = plot(axX, t, x, '-', 'Color', c, 'Marker', 'none', 'LineWidth', 1.2);
-        h(3) = plot(axY, t, y, '-', 'Color', c, 'Marker', 'none', 'LineWidth', 1.2);
-        h(4) = plot(axZ, t, z, '-', 'Color', c, 'Marker', 'none', 'LineWidth', 1.2);
+        h(1) = plot3(ax3, x, y, z, 'Color', c, 'LineStyle', ls, 'Marker', mk, ...
+                     'MarkerSize', ms, 'LineWidth', 1.2, 'DisplayName', m);
+        h(2) = plot(axX, t, x, 'Color', c, 'LineStyle', ls, 'Marker', mk, 'MarkerSize', ms, 'LineWidth', 1.2);
+        h(3) = plot(axY, t, y, 'Color', c, 'LineStyle', ls, 'Marker', mk, 'MarkerSize', ms, 'LineWidth', 1.2);
+        h(4) = plot(axZ, t, z, 'Color', c, 'LineStyle', ls, 'Marker', mk, 'MarkerSize', ms, 'LineWidth', 1.2);
         H(m) = h;
     end
 
@@ -145,7 +151,7 @@ function plot_trajectory(csvfile)
         'HorizontalAlignment', 'left');
     uicontrol(fig3, 'Style', 'popupmenu', 'String', {'Line', 'Scatter'}, ...
         'Units', 'normalized', 'Position', [0.10 0.955-0.030*nRows-0.03 0.11 0.028], ...
-        'Callback', @(src, ~) setstyle(H, src.Value));
+        'Callback', @(src, ~) setstyle(H, src.Value, isObstacle));
 
     % --- Figure 3: the audio clap sync for ALL cameras (needs an 'audio' sheet) --
     if isxlsx && any(strcmp(sheetnames(datafile), 'audio'))
@@ -174,9 +180,10 @@ function plot_trajectory(csvfile)
     end
 end
 
-function setstyle(H, mode)
+function setstyle(H, mode, isObstacle)
     ks = keys(H);
     for i = 1:numel(ks)
+        if isObstacle(ks{i}), continue; end   % obstacle stays scatter points
         h = H(ks{i});
         if mode == 1          % Line
             set(h, 'LineStyle', '-', 'Marker', 'none');
