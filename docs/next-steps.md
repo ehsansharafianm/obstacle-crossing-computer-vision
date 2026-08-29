@@ -4,16 +4,19 @@ Living checklist of what's next, from the current state onward. Each stage marks
 **[You]** (physical lab work) vs **[Code]** (I build/run it). See
 [[camera-imu-workflow]] for the full design and [[open-items]] for decisions.
 
-## Where we are  (see [[progress-log]] + [[2026-08-28]] for the full story)
+## Where we are  (see [[progress-log]] + [[2026-08-29]] for the full story)
 - ✅ **3× Pixel-8 rig** (ultrawide 60 fps): per-phone intrinsics, one-command 3-camera
   calibration (calib10: cam1↔cam2 0.71 px, floor 0.52 mm, cam2↔cam3 0.97 px).
-- ✅ **Robust clap sync for all 3 cameras** (rigid-shoe-arbitrated, clap-seeded) — survives
-  quiet claps + far-apart start times.
+- ✅ **Robust clap sync for all 3 cameras** — rigid-shoe-arbitrated + clap-seeded, and the
+  clap now WINS when the rigid minimum aliases one stride away (fixed cam3 in test14).
 - ✅ **n-view 3D + world frame** — cam1+cam2 precision core (widest baseline), cam3 gap-fill.
-  test10: **L 16 mm / R 12 mm** toe-heel std, full lift/landing arcs.
-- ✅ Output time **zeroed at the clap**; **aligned review clips** auto-generated; **axis
-  readout + flip** tool; MATLAB viewer shows trajectory + all-3-camera clap sync.
-- ⚙️ **Clearance metric** not yet computed (next); coverage limited by cam2/cam3 detection.
+  test14: **L 15 mm / R 13 mm** toe-heel std over ~15 crossings, full lift/landing arcs.
+- ✅ **Obstacle capture works at multiple heights** — reds detected by hue+shape (round-blob
+  gate rejects skin/poles), reconstructed n-view from any 2 cameras. test14: **75 %
+  coverage, 4 configs resolved with sub-mm scatter**. Reported as obstacle1/obstacle2 per time.
+- ✅ Output time **zeroed at the clap**; **aligned review clips** auto-generated; MATLAB
+  viewer shows trajectory (obstacle as scatter) + all-3-camera clap sync; processing-time log.
+- ⚙️ **Clearance metric** is the researcher's own step (foot vs obstacle markers, both in xlsx).
 
 ### Immediate scope (this phase)
 - [ ] **Clearance computation** — per crossing, min gap between each foot marker and the

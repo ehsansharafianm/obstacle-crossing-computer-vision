@@ -32,7 +32,11 @@ COLOR_RANGES = {
     "green":      [((34, 90, 60), (75, 255, 255))],      # left heel (upper<teal)
     "pink":       [((148, 90, 70), (172, 255, 255))],    # right toe (upper<red)
     "teal":       [((88, 140, 60), (106, 255, 255))],    # right heel (S>=140: marker ~204 kept, blue-grey clothing ~110 excluded)
-    "red_ground": [((172, 130, 70), (180, 255, 255))],   # ground markers (skin ~5 excluded)
+    # Obstacle reds are ORANGE-RED (hue ~3-9), so BOTH hue ends are needed. Skin
+    # (~hue 5-15) and the orange support poles (~hue 16-25) overlap the low end, so
+    # detect_round_blobs adds a shape gate; the high saturation floor drops the
+    # low-sat floor. Upper bound 12 stays below the orange poles (>=16).
+    "red_ground": [((0, 150, 80), (12, 255, 255)), ((170, 150, 80), (180, 255, 255))],
     # legacy alias used by the single-foot detector
     "red_marker": [((168, 130, 60), (180, 255, 255))],
 }
@@ -50,6 +54,30 @@ def detect_blobs(mask, min_area=15, max_area=6000):
     n, _, stats, cent = cv2.connectedComponentsWithStats(mask)
     return [(float(cent[k][0]), float(cent[k][1]), int(stats[k, 4]))
             for k in range(1, n) if min_area < stats[k, 4] < max_area]
+
+
+def detect_round_blobs(mask, min_area=25, max_area=6000, min_circ=0.55, min_fill=0.6):
+    """Like detect_blobs but keeps only ROUND, well-filled components, for the
+    spherical obstacle red markers whose orange-red hue overlaps skin and the
+    orange support poles. Bare limbs and equipment are large and irregular
+    (low circularity 4*pi*A/P^2, low bounding-box fill A/(w*h)), so shape rejects
+    them where hue alone cannot. Returns (x, y, area), largest first."""
+    n, lab, stats, cent = cv2.connectedComponentsWithStats(mask)
+    out = []
+    for k in range(1, n):
+        a = int(stats[k, 4])
+        w, h = int(stats[k, 2]), int(stats[k, 3])
+        if not (min_area < a < max_area) or w * h == 0 or a / (w * h) < min_fill:
+            continue
+        comp = (lab == k).astype(np.uint8)
+        cnts, _ = cv2.findContours(comp, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        if not cnts:
+            continue
+        per = cv2.arcLength(cnts[0], True)
+        if per <= 0 or 4 * np.pi * a / (per * per) < min_circ:
+            continue
+        out.append((float(cent[k][0]), float(cent[k][1]), a))
+    return sorted(out, key=lambda b: b[2], reverse=True)
 
 
 def detect_markers(frame, colors, min_area=15, max_area=6000):
@@ -178,7 +206,7 @@ def detect_two_feet_ground(frame, max_area=9000, near_px=500, top_ignore=0.08):
 
     L_toe, L_heel = _closest_pair(bl(STUDY_MARKERS["L_toe"]), bl(STUDY_MARKERS["L_heel"]), near_px)
     R_toe, R_heel = _closest_pair(bl(STUDY_MARKERS["R_toe"]), bl(STUDY_MARKERS["R_heel"]), near_px)
-    reds = sorted(bl(STUDY_MARKERS["ground"]), key=lambda b: b[2], reverse=True)[:2]
+    reds = detect_round_blobs(color_mask(hsv, STUDY_MARKERS["ground"]))[:2]
     return {"L_toe": L_toe, "L_heel": L_heel, "R_toe": R_toe, "R_heel": R_heel,
             "ground": [b[:2] for b in reds]}
 

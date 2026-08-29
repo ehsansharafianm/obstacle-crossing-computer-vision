@@ -284,6 +284,40 @@ def main():
                 best = (err, np.array(Xs))
         return best[1], best[0] / 4.0                   # points, mean reproj error (norm)
 
+    def match_reds_nview(obs):
+        """N-view version: obs = list of (n2 (2,2) normalised reds, P (3,4)) for every
+        camera that sees >=2 reds, in cam-1 frame. Establish the 2-marker correspondence
+        (first camera = reference; each other camera picks the permutation with lowest
+        pairwise-reprojection error vs the reference), then n-view triangulate each
+        marker from ALL cameras that see it. Returns (points (2,3), mean reproj error).
+        Any pair suffices, so a red is reconstructed whenever >=2 of the 3 cameras see
+        it -- not only cam1+cam2."""
+        ref_n, ref_P = obs[0]
+        assign = [[0, 1]]                                # ref camera: markers 0,1 as-is
+        for n, P in obs[1:]:
+            best = None
+            for perm in ([0, 1], [1, 0]):
+                err = 0.0
+                for m in range(2):
+                    Xh = cv2.triangulatePoints(ref_P, P, ref_n[m].reshape(2, 1),
+                                               n[perm[m]].reshape(2, 1))
+                    X = (Xh[:3] / Xh[3]).ravel()
+                    for PP, nn in ((ref_P, ref_n[m]), (P, n[perm[m]])):
+                        p = PP @ np.append(X, 1.0); p = p[:2] / p[2]
+                        err += float(np.hypot(p[0] - nn[0], p[1] - nn[1]))
+                if best is None or err < best[0]:
+                    best = (err, perm)
+            assign.append(best[1])
+        Xs, tot, cnt = [], 0.0, 0
+        for m in range(2):
+            pts = [obs[c][0][assign[c][m]] for c in range(len(obs))]
+            Ps = [obs[c][1] for c in range(len(obs))]
+            X = triangulate_nview(pts, Ps); Xs.append(X)
+            for p, P in zip(pts, Ps):
+                q = P @ np.append(X, 1.0); q = q[:2] / q[2]
+                tot += float(np.hypot(q[0] - p[0], q[1] - p[1])); cnt += 1
+        return np.array(Xs), tot / max(cnt, 1)
+
     def timed_track(cam, tag):
         t0 = time.perf_counter()
         ts, F, G, cached = load_or_track(cam, folder / f"{tid}_{tag}_track_cache.npz")
@@ -327,7 +361,7 @@ def main():
                     stds.append(np.std(d2))
         return (float(np.mean(stds)) if stds else 1e9), ntot
 
-    def pick_offset(refTs, refF, tsB, FB, tri_pair, refOff=0.0, seeds=()):
+    def pick_offset(refTs, refF, tsB, FB, tri_pair, refOff=0.0, seeds=(), clap=None):
         # Candidate offsets: any seeds (clap/motion -- crucial when the true offset
         # is outside the coarse window, e.g. cameras started >9 s apart) plus a
         # coarse global scan. Then refine around the best (max overlap, min scatter).
@@ -336,13 +370,31 @@ def main():
         scored = [(o, *rigidity(o, *a)) for o in cand]
         nmax = max((c[2] for c in scored), default=0) or 1
         good = [c for c in scored if c[2] >= 0.4 * nmax and c[1] < 1e8] or scored
-        o0 = min(good, key=lambda c: c[1])[0]
-        best = None
-        for o in np.arange(o0 - 0.4, o0 + 0.4, 0.02):
-            s, n = rigidity(o, *a)
-            if n >= 0.4 * nmax and (best is None or s < best[0]):
-                best = (s, o)
-        return best[1], best[0]
+
+        def refine(o0):                                   # fine scan -> (scatter, offset)
+            best = None
+            for o in np.arange(o0 - 0.4, o0 + 0.4, 0.02):
+                s, n = rigidity(o, *a)
+                if n >= 0.4 * nmax and (best is None or s < best[0]):
+                    best = (s, o)
+            return best
+
+        rig = refine(min(good, key=lambda c: c[1])[0])
+        # The clap is a HARD physical anchor. A rigid minimum that lands far from the
+        # clap is almost always a gait-period alias (the toe-heel scatter is nearly
+        # as low one stride off). So trust the clap unless its own local fit is much
+        # worse -- i.e. only override the clap when the clap detection is genuinely bad.
+        if clap is not None:
+            clp = refine(clap)
+            if clp is not None and rig is not None:
+                if abs(rig[1] - clap) > 1.0:              # disagree by >1 s: distrust rig
+                    if clp[0] <= 1.5 * rig[0]:            # clap fit not much worse -> clap
+                        rig = clp
+                elif clp[0] < rig[0]:                     # agree: take the tighter one
+                    rig = clp
+            elif clp is not None:
+                rig = clp
+        return rig[1], rig[0]
 
     ev1 = clap_envelope(cam1); ev2 = clap_envelope(cam2)
     off_clap = (ev1["clap_t"] / SLOWMO - ev2["clap_t"] / SLOWMO) if (ev1 and ev2) else None
@@ -352,7 +404,8 @@ def main():
             f"cam2 @ {ev2['clap_t']/SLOWMO:.3f}s (x{ev2['prominence']:.0f})  -> cam2 {off_clap:+.3f}s")
     if off_mot is not None:
         say(f"Motion candidate: cam2 {off_mot:+.3f}s")
-    off, off_std = pick_offset(ts1, F1, ts2, F2, tri, seeds=(off_clap, off_mot))  # cam2 vs cam1
+    off, off_std = pick_offset(ts1, F1, ts2, F2, tri,
+                               seeds=(off_clap, off_mot), clap=off_clap)  # cam2 vs cam1
     tag = "  [clap agrees]" if (off_clap is not None and abs(off - off_clap) < 0.3) else "  [clap OFF]"
     say(f"-> cam2 sync: {off:+.3f}s = cam1   (toe-heel scatter {off_std:.0f} mm){tag}")
 
@@ -370,7 +423,8 @@ def main():
         # Sync cam3 against cam2 through the CLEAN cam2<->cam3 pair, SEEDED by the
         # cam3 clap (its true offset can be well outside the coarse window when the
         # cameras started many seconds apart). off3 stays relative to cam1's grid.
-        off3, off3_std = pick_offset(ts2, F2, ts3, F3, tri23, refOff=off, seeds=(c3clap,))
+        off3, off3_std = pick_offset(ts2, F2, ts3, F3, tri23, refOff=off,
+                                     seeds=(c3clap,), clap=c3clap)
         tag3 = "  [clap agrees]" if (c3clap is not None and abs(off3 - c3clap) < 0.3) else "  [clap OFF]"
         say(f"-> cam3 sync: {off3:+.3f}s = cam1   (cam2+cam3 scatter {off3_std:.0f} mm){tag3}")
 
@@ -436,18 +490,38 @@ def main():
     for name in OBST:
         world[name] = np.full((len(grid), 3), np.nan)
     if W is not None:
-        j2 = np.clip(np.searchsorted(ts2, grid - off), 0, len(ts2) - 1)
+        # Reds from EVERY camera, time-aligned to the grid, undistorted to cam-1 frame.
+        # A red is reconstructed whenever >=2 of the 3 cameras see it (any pair) -- the
+        # same n-view logic as the feet, so obstacle coverage no longer requires that
+        # BOTH cam1 and cam2 catch it in the same frame.
+        red_cams = [(G1, 0.0, intr1, P1n), (G2, off, intr2, P2n)]
+        if cam3 is not None and off3 is not None and G3 is not None:
+            red_cams.append((G3, off3, intr3, P3n))
 
-        def reds2(fr):
-            r = np.array(fr, float)
-            return r[np.argsort(r[:, 0])][:2] if len(r) >= 2 else None
+        def reds2_norm(G, ts, o, intr):
+            j = np.clip(np.searchsorted(ts, grid - o), 0, len(ts) - 1)
+            out = [None] * len(grid)
+            for i in range(len(grid)):
+                r = np.array(G[j[i]], float)
+                if len(r) >= 2:
+                    r = r[np.argsort(r[:, 0])][:2]
+                    out[i] = cv2.undistortPoints(r.reshape(-1, 1, 2),
+                                                 intr.camera_matrix,
+                                                 intr.dist_coeffs).reshape(-1, 2)
+            return out
+
+        ts_of = {id(G1): ts1, id(G2): ts2}
+        if cam3 is not None:
+            ts_of[id(G3)] = ts3
+        red_norm = [(reds2_norm(G, ts_of[id(G)], o, intr), P)
+                    for (G, o, intr, P) in red_cams]
 
         n_obs = n_rej = 0
         for i in range(len(grid)):
-            r1, r2 = reds2(G1[i]), reds2(G2[j2[i]])
-            if r1 is None or r2 is None:
+            obs = [(rn[i], P) for (rn, P) in red_norm if rn[i] is not None]
+            if len(obs) < 2:
                 continue
-            pts, rerr = match_reds(r1, r2)
+            pts, rerr = match_reds_nview(obs)
             if rerr > 0.02:                             # ~28 px: gross mismatch (occlusion)
                 n_rej += 1; continue
             pw = W.apply(pts)
