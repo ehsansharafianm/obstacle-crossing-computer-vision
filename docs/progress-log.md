@@ -4,6 +4,10 @@ What we've built and proven, in order. See [[code-structure]] for the code,
 [[next-steps]] for what's left, [[automated-pipeline]] for the system plan.
 
 ## Headline achievements
+- **Multi-height obstacle capture works** (2026-08-29). test14 (4 configs): obstacle
+  reconstructed in **75 %** of frames, all four windows resolved with sub-mm scatter, feet
+  **15 / 13 mm** toe-heel std — after fixing orange-red marker detection (hue + round-blob
+  shape gate), n-view obstacle triangulation, and clap-over-alias sync. See [[2026-08-29]].
 - **THREE Google Pixel 8 phones → a working 3-camera clearance-measurement system**
   (2026-08-28). Ultrawide 60 fps, all 3 cameras clap-synced, n-view 3D. test10:
   **L 16 mm / R 12 mm** toe-heel std with full lift/landing coverage. See [[2026-08-28]].
@@ -97,6 +101,30 @@ What we've built and proven, in order. See [[code-structure]] for the code,
 - test10: **L 16 mm / R 12 mm**, full arcs, all 3 cameras contributing.
 - **Coverage bottleneck** stays: cam2/cam3 detect ~29 % (vs cam1 59 %); the safe fix is
   marker colours absent from the lab background (single-marker keeping otherwise grabs clutter).
+
+### 12. Multi-height obstacle capture works  ✅ (2026-08-29, [[2026-08-29]])
+- Ran two multi-height sessions (test13: 2 heights, test14: **4 configs, 5 min, ~15 crossings**).
+  The obstacle is now reported as **per-time markers** `obstacle1`/`obstacle2` (X/Y/Z), so it
+  can be moved between crossings; the researcher computes clearance from these + the feet.
+- **test14: obstacle coverage 6 % → 75 %**, all four configs resolved with **sub-mm scatter**
+  (two height levels ~180 mm and ~345 mm; the two reds are the board's two ends at X = ±281 mm,
+  Y ≈ 0 — matches the board-along-X / walk-along-Y layout). Feet **15 / 13 mm** toe-heel std.
+- Three fixes got there (see [[2026-08-29]]):
+  1. **Obstacle detection was the real bottleneck.** The reds are **orange-red (hue ≈ 3–9)**,
+     but the detector used hue 172–180 only → it missed them across whole time-windows.
+     Widening naively then grabbed the subject's **bare legs** and the **orange poles**
+     (same hue). Fix (`occ.tracking`): hue **0–12 + 170–180** with a saturation floor (upper
+     bound 12 stays below the poles at ≥16) **plus a round-blob shape gate** (circularity ≥ 0.55,
+     bbox fill ≥ 0.6) — the balls pass (circ 0.8–0.9), legs/equipment (circ ~0.2) are rejected.
+  2. **Obstacle reconstructed n-view from any 2 of 3 cameras** (`match_reds_nview`), like the feet.
+  3. **Clap wins over gait-alias sync.** When the rigid-shoe offset disagrees with the clap by
+     >1 s (a false minimum one stride away) the clap is trusted unless its own fit is much worse.
+     Fixed cam3 (+5.74 → +7.66 s); **R-foot outliers 1001 → 88**.
+- Also from test13: obstacle **reproj-error gate** (~28 px) + **2-pass MAD rolling-median** filter
+  to kill occlusion spikes.
+- **Note for the 6-height protocol:** detection works, but the orange-red balls *share* the
+  scene's hue (skin + poles) — the shape gate does the heavy lifting. A marker colour absent
+  from the room (e.g. blue; feet already use purple/green/teal/pink) would make it bulletproof.
 
 ## Deliverables produced
 - **MATLAB viewer** `matlab/plot_trajectory.m` — 3D + X/Y/Z-vs-time, per-marker toggles,
