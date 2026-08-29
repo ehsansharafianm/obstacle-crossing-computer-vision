@@ -32,7 +32,8 @@ VIDEO_EXTS = (".MOV", ".mov", ".MP4", ".mp4", ".avi", ".AVI")
 SLOWMO = 4                                   # set by detect_slowmo() in main()
 FEET = ["L_toe", "L_heel", "R_toe", "R_heel"]
 PAIRS = [("L_toe", "L_heel"), ("R_toe", "R_heel")]
-COLORS = {"L_toe": "#7C3AED", "L_heel": "#22A559", "R_toe": "#D6336C", "R_heel": "#1098AD"}
+COLORS = {"L_toe": "#7C3AED", "L_heel": "#22A559", "R_toe": "#D6336C", "R_heel": "#1098AD",
+          "obstacle1": "#111111", "obstacle2": "#888888"}
 
 
 def detect_slowmo(video):
@@ -425,71 +426,54 @@ def main():
                               (np.abs(world[k][:, 0]) > 3) | (np.abs(world[k][:, 1]) > 3))
         world[k][bad] = np.nan
 
-    # --- Obstacle markers: two static reds at ANY height -> 2 fixed 3D points --
-    ground_w = None
-    c1 = ground_2d(G1); c2 = ground_2d(G2)
-    if c1 is not None and c2 is not None:
-        pts = match_reds(c1, c2)                     # geometry match (not floor-bound)
-        ground_w = W.apply(pts) if W is not None else pts
-        say(f"Obstacle markers (world, mm): "
-            + " | ".join(f"({p[0]*1000:.0f},{p[1]*1000:.0f},Z={p[2]*1000:.0f})" for p in ground_w))
-
-    # --- Per-crossing obstacle height + clearance ----------------------------
-    # The obstacle (2 red markers) may be moved to a different height BETWEEN
-    # crossings; it is static DURING each crossing. So per crossing we reconstruct
-    # the obstacle from the MEDIAN of the reds over a window around it (robust to the
-    # foot occluding a red mid-crossing). Each contiguous reconstructed run of a foot
-    # marker is one crossing; clearance = foot Z - obstacle-top Z at the instant the
-    # marker is directly over the obstacle line (min |foot_Y - obstacle_Y|).
-    clap0 = ev1["clap_t"] / SLOWMO if ev1 is not None else 0.0
-    clearance_rows = []
+    # --- Obstacle markers: reconstruct the 2 reds PER FRAME and report them as
+    #     regular per-time markers (obstacle1/obstacle2). The obstacle may be moved
+    #     to a different height between crossings, so it is NOT a single static point;
+    #     it's left un-smoothed so those between-crossing height changes are preserved.
+    OBST = ["obstacle1", "obstacle2"] if W is not None else []
+    for name in OBST:
+        world[name] = np.full((len(grid), 3), np.nan)
     if W is not None:
         j2 = np.clip(np.searchsorted(ts2, grid - off), 0, len(ts2) - 1)
-        gfps = 1.0 / np.median(np.diff(grid)); pad = int(round(0.6 * gfps))  # ~0.6 s
 
         def reds2(fr):
             r = np.array(fr, float)
             return r[np.argsort(r[:, 0])][:2] if len(r) >= 2 else None
 
-        def obstacle_near(a, b):
-            r1 = [x for x in (reds2(G1[i]) for i in range(a, b)) if x is not None]
-            r2 = [x for x in (reds2(G2[j2[i]]) for i in range(a, b)) if x is not None]
-            if len(r1) < 3 or len(r2) < 3:
-                return None, None
-            pw = W.apply(match_reds(np.median(np.stack(r1), 0), np.median(np.stack(r2), 0)))
-            return float(np.mean(pw[:, 2])), float(np.mean(pw[:, 1]))   # top Z, line Y
-
-        for k in FEET:
-            zt, yt = world[k][:, 2], world[k][:, 1]; good = ~np.isnan(zt)
-            i = 0
-            while i < len(grid):
-                if not good[i]:
-                    i += 1; continue
-                j = i
-                while j < len(grid) and good[j]:
-                    j += 1
-                oz, oy = obstacle_near(max(0, i - pad), min(len(grid), j + pad))
-                if oz is not None:
-                    seg = np.arange(i, j); dy = np.abs(yt[seg] - oy)
-                    js = int(seg[int(np.argmin(dy))])
-                    if dy.min() < 0.12:                 # marker actually passed over the line
-                        clearance_rows.append([round(grid[js] - clap0, 3), k,
-                                               round(oz * 1000, 1), round(zt[js] * 1000, 1),
-                                               round((zt[js] - oz) * 1000, 1)])
-                i = j
-        clearance_rows.sort()
-        if clearance_rows:
-            say("Per-crossing clearance (marker directly over the obstacle top):")
-            for t, k, oz, fz, cl in clearance_rows:
-                say(f"  t={t:7.2f}s  {k:7s}  obstacle {oz:5.0f}  foot {fz:5.0f}  clearance {cl:5.0f} mm")
+        n_obs = 0
+        for i in range(len(grid)):
+            r1, r2 = reds2(G1[i]), reds2(G2[j2[i]])
+            if r1 is None or r2 is None:
+                continue
+            pw = W.apply(match_reds(r1, r2))
+            pw = pw[np.argsort(pw[:, 0])]                # sort by world X -> stable 1/2
+            world["obstacle1"][i] = pw[0]; world["obstacle2"][i] = pw[1]
+            n_obs += 1
+        say(f"Obstacle markers reconstructed in {n_obs}/{len(grid)} frames "
+            f"(per-frame; can move between crossings)")
+        # Light outlier rejection: a foot occluding a red mid-crossing throws a
+        # phantom point. Drop points > 80 mm from a short rolling median (keeps the
+        # real between-crossing height steps, which the rolling median follows).
+        wroll = max(5, int(round(0.5 / np.median(np.diff(grid)))))
+        for name in OBST:
+            arr = world[name]
+            for a in range(3):
+                col = arr[:, a]
+                med = np.full(len(col), np.nan)
+                for i in range(len(col)):
+                    seg = col[max(0, i - wroll):i + wroll + 1]
+                    seg = seg[~np.isnan(seg)]
+                    if len(seg):
+                        med[i] = np.median(seg)
+                arr[~np.isnan(col) & (np.abs(col - med) > 0.08)] = np.nan
 
     fps = 1 / np.median(np.diff(grid))
-    for k in FEET:
+    for k in FEET:                                       # smooth the feet only
         world[k] = clean_trajectory(world[k], fps)
     frame_label = "world frame (Z = height above floor)" if W is not None else "camera-1 frame"
     say(f"Output: {frame_label}")
-    for k in FEET:
-        say(f"  {k:7s} {100*np.mean(~np.isnan(world[k][:,0])):.0f}% reconstructed")
+    for k in FEET + OBST:
+        say(f"  {k:8s} {100*np.mean(~np.isnan(world[k][:,0])):.0f}% reconstructed")
 
     # Time is referenced to the CLAP (t=0 = the sync moment, all cameras aligned),
     # and the pre-clap setup (t<0, cameras not all synced) is dropped from the output.
@@ -497,31 +481,21 @@ def main():
     t_out = grid - clap0
     keep = t_out >= 0
     t_out = t_out[keep]
-    world = {k: world[k][keep] for k in FEET}
+    world = {k: world[k][keep] for k in FEET + OBST}
     say(f"Time origin: t=0 at the clap (cam1 @ {clap0:.2f}s in); "
         f"kept {int(keep.sum())} post-clap frames, dropped {int((~keep).sum())} pre-clap")
 
-    # --- Excel output: one .xlsx, sheet "markers" (feet, per-frame) + "obstacle" -
+    # --- Excel output: one .xlsx. 'markers' sheet = feet + obstacle1/obstacle2, all
+    #     per-frame X/Y/Z (obstacle is a moving marker now) + the clap-sync 'audio' sheet.
     import pandas as pd
     cols = {"time_s": np.round(t_out, 4)}
-    for k in FEET:
+    for k in FEET + OBST:
         for a, axname in enumerate("xyz"):
             cols[f"{k}_{axname}_mm"] = np.round(world[k][:, a] * 1000, 2)
     df_markers = pd.DataFrame(cols)
     xlsx_path = folder / f"{tid}_trajectory.xlsx"
     with pd.ExcelWriter(xlsx_path, engine="openpyxl") as xw:
         df_markers.to_excel(xw, sheet_name="markers", index=False)
-        if ground_w is not None:
-            pd.DataFrame({
-                "marker": [f"obstacle{i+1}" for i in range(len(ground_w))],
-                "x_mm": np.round(ground_w[:, 0] * 1000, 2),
-                "y_mm": np.round(ground_w[:, 1] * 1000, 2),
-                "z_mm": np.round(ground_w[:, 2] * 1000, 2),
-            }).to_excel(xw, sheet_name="obstacle", index=False)
-        if clearance_rows:                               # per-crossing foot clearance
-            pd.DataFrame(clearance_rows, columns=[
-                "time_s", "marker", "obstacle_z_mm", "foot_z_mm", "clearance_mm"
-            ]).to_excel(xw, sheet_name="clearance", index=False)
         if audio_df is not None:                         # clap-sync envelopes (MATLAB)
             audio_df.to_excel(xw, sheet_name="audio", index=False)
 
@@ -530,6 +504,8 @@ def main():
     fig, ax = plt.subplots(2, 1, figsize=(11, 8))
     for k in FEET:
         ax[0].plot(t_out, world[k][:, 2] * 1000, color=COLORS[k], lw=1.3, label=k)
+    for k in OBST:                                         # obstacle height over time
+        ax[0].plot(t_out, world[k][:, 2] * 1000, color=COLORS[k], lw=1.0, ls="--", label=k)
     ax[0].axvline(0, color="k", ls=":", lw=1)             # t=0 = clap
     ax[0].set_title(f"{tid}: marker HEIGHT over time  (both feet;  t=0 = clap)")
     ax[0].set_xlabel("time (s, 0 = clap)"); ax[0].set_ylabel("height Z (mm)")
@@ -542,8 +518,8 @@ def main():
     ax[1].set_xlabel("time (s, 0 = clap)"); ax[1].set_ylabel("mm"); ax[1].legend(fontsize=9)
     fig.tight_layout(); fig.savefig(folder / f"{tid}_trajectory.png", dpi=110)
 
-    say(f"\nSaved {xlsx_path.name} (sheets: markers"
-        + (" + obstacle" if ground_w is not None else "") + f"), {tid}_trajectory.png")
+    say(f"\nSaved {xlsx_path.name} (markers sheet incl. obstacle1/obstacle2"
+        + (" + audio" if audio_df is not None else "") + f"), {tid}_trajectory.png")
 
     # --- Aligned review clips (for MANUAL viewing only; analysis used the originals)
     say("Aligned review clips (start 2 s before the clap) -> synced_videos/:")

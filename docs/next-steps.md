@@ -82,10 +82,10 @@ Shake out the whole chain before full collection.
 ---
 
 ## Immediate: what to do next
-1. ✅ **Per-crossing clearance** computed in `build_multi_trajectory` (foot marker vs obstacle
-   top; obstacle re-measured per crossing so it can be moved between them). In the 'clearance'
-   xlsx sheet + run log. Validate the numbers against a couple of hand checks.
-2. **[You]** Record the **6 obstacle heights** (cameras fixed = calib11 stays valid; reds on
-   the obstacle top; clap at start). Heights can be one-per-session OR moved between crossings
-   within one recording (clearance is per-crossing either way).
-3. **[Code, optional]** Velocity outlier filter; marker-colour swap to raise cam2/cam3 coverage.
+1. ✅ **Obstacle as per-time markers** — `build_multi_trajectory` reconstructs the two red
+   obstacle markers per frame (obstacle1/obstacle2) in the 'markers' sheet, so the obstacle
+   can be moved between crossings; the researcher computes clearance from these + the feet.
+2. **[You]** Record the obstacle heights (cameras fixed = calib11 stays valid; reds on the
+   obstacle top; clap at start). Heights can be one-per-session OR moved between crossings.
+3. **[You/Code]** Compute clearance (researcher's own step) from foot vs obstacle markers.
+4. **[Code, optional]** Velocity outlier filter on feet; marker-colour swap for cam2/cam3 coverage.
