@@ -1,10 +1,10 @@
 Test: test12
 
-Run started: 2026-08-29 13:27:58
+Run started: 2026-08-29 14:40:08
 Recording mode: normal (~60 fps)
-[test12] cam1.mp4 (cam1): tracked in 345.8s
-[test12] cam2.mp4 (cam2): tracked in 271.0s
-[test12] cam3.mp4 (cam3): tracked in 243.1s
+[test12] cam1.mp4 (cam1): loaded cache in 0.0s
+[test12] cam2.mp4 (cam2): loaded cache in 0.0s
+[test12] cam3.mp4 (cam3): loaded cache in 0.0s
 [test12] 3-camera mode
   L_toe   cam1 46%  cam2 21%  cam3 23%
   L_heel  cam1 46%  cam2 21%  cam3 23%
@@ -21,6 +21,34 @@ Reconstructing from 3 cameras (marker needs >=2 to get a 3D point)
   L foot: toe-heel 272 mm, dropped 122 outliers
   R foot: toe-heel 283 mm, dropped 31 outliers
 Obstacle markers (world, mm): (289,25,Z=341) | (-280,7,Z=358)
+Per-crossing clearance (marker directly over the obstacle top):
+  t=  10.49s  L_toe    obstacle   350  foot   533  clearance   183 mm
+  t=  10.59s  L_heel   obstacle   350  foot   519  clearance   169 mm
+  t=  11.59s  R_toe    obstacle   349  foot   486  clearance   137 mm
+  t=  11.65s  R_heel   obstacle   349  foot   674  clearance   326 mm
+  t=  22.81s  L_toe    obstacle   350  foot   535  clearance   185 mm
+  t=  22.91s  L_heel   obstacle   350  foot   512  clearance   161 mm
+  t=  23.87s  R_toe    obstacle   350  foot   482  clearance   132 mm
+  t=  23.90s  R_heel   obstacle   350  foot   725  clearance   375 mm
+  t=  35.58s  L_toe    obstacle   350  foot   528  clearance   179 mm
+  t=  35.70s  L_heel   obstacle   350  foot   542  clearance   193 mm
+  t=  36.68s  R_toe    obstacle   350  foot   526  clearance   176 mm
+  t=  36.71s  R_heel   obstacle   350  foot   764  clearance   414 mm
+  t=  48.35s  R_toe    obstacle   348  foot   494  clearance   145 mm
+  t=  48.47s  R_heel   obstacle   348  foot   481  clearance   132 mm
+  t=  48.51s  R_heel   obstacle   348  foot   453  clearance   105 mm
+  t=  49.38s  L_toe    obstacle   348  foot   535  clearance   186 mm
+  t=  49.43s  L_heel   obstacle   348  foot   716  clearance   368 mm
+  t=  49.47s  L_heel   obstacle   349  foot   672  clearance   324 mm
+  t=  61.02s  R_toe    obstacle   349  foot   523  clearance   174 mm
+  t=  61.13s  R_heel   obstacle   349  foot   514  clearance   165 mm
+  t=  61.95s  L_heel   obstacle   349  foot   718  clearance   369 mm
+  t=  61.95s  L_toe    obstacle   349  foot   497  clearance   148 mm
+  t=  72.42s  R_toe    obstacle   349  foot   492  clearance   143 mm
+  t=  72.55s  R_heel   obstacle   349  foot   483  clearance   134 mm
+  t=  72.58s  R_heel   obstacle   348  foot   459  clearance   110 mm
+  t=  73.55s  L_toe    obstacle   349  foot   559  clearance   210 mm
+  t=  73.58s  L_heel   obstacle   349  foot   732  clearance   383 mm
 Output: world frame (Z = height above floor)
   L_toe   22% reconstructed
   L_heel  22% reconstructed
@@ -30,11 +58,11 @@ Time origin: t=0 at the clap (cam1 @ 11.35s in); kept 5146 post-clap frames, dro
 
 Saved test12_trajectory.xlsx (sheets: markers + obstacle), test12_trajectory.png
 Aligned review clips (start 2 s before the clap) -> synced_videos/:
-  cam1: clap @ 11.35s -> synced_videos/cam1_synced.mp4
-  cam2: clap @ 5.49s -> synced_videos/cam2_synced.mp4
-  cam3: clap @ 2.54s -> synced_videos/cam3_synced.mp4
+  cam1: synced_videos/cam1_synced.mp4 already exists -- kept
+  cam2: synced_videos/cam2_synced.mp4 already exists -- kept
+  cam3: synced_videos/cam3_synced.mp4 already exists -- kept
   3 aligned review clip(s) -> sessions\test12\synced_videos
 
-Run started:  2026-08-29 13:27:58
-Run finished: 2026-08-29 13:43:56
-Total processing time: 15 min 58.3 s  (958.3 s)
+Run started:  2026-08-29 14:40:08
+Run finished: 2026-08-29 14:40:20
+Total processing time: 0 min 11.8 s  (11.8 s)

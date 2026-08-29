@@ -434,6 +434,55 @@ def main():
         say(f"Obstacle markers (world, mm): "
             + " | ".join(f"({p[0]*1000:.0f},{p[1]*1000:.0f},Z={p[2]*1000:.0f})" for p in ground_w))
 
+    # --- Per-crossing obstacle height + clearance ----------------------------
+    # The obstacle (2 red markers) may be moved to a different height BETWEEN
+    # crossings; it is static DURING each crossing. So per crossing we reconstruct
+    # the obstacle from the MEDIAN of the reds over a window around it (robust to the
+    # foot occluding a red mid-crossing). Each contiguous reconstructed run of a foot
+    # marker is one crossing; clearance = foot Z - obstacle-top Z at the instant the
+    # marker is directly over the obstacle line (min |foot_Y - obstacle_Y|).
+    clap0 = ev1["clap_t"] / SLOWMO if ev1 is not None else 0.0
+    clearance_rows = []
+    if W is not None:
+        j2 = np.clip(np.searchsorted(ts2, grid - off), 0, len(ts2) - 1)
+        gfps = 1.0 / np.median(np.diff(grid)); pad = int(round(0.6 * gfps))  # ~0.6 s
+
+        def reds2(fr):
+            r = np.array(fr, float)
+            return r[np.argsort(r[:, 0])][:2] if len(r) >= 2 else None
+
+        def obstacle_near(a, b):
+            r1 = [x for x in (reds2(G1[i]) for i in range(a, b)) if x is not None]
+            r2 = [x for x in (reds2(G2[j2[i]]) for i in range(a, b)) if x is not None]
+            if len(r1) < 3 or len(r2) < 3:
+                return None, None
+            pw = W.apply(match_reds(np.median(np.stack(r1), 0), np.median(np.stack(r2), 0)))
+            return float(np.mean(pw[:, 2])), float(np.mean(pw[:, 1]))   # top Z, line Y
+
+        for k in FEET:
+            zt, yt = world[k][:, 2], world[k][:, 1]; good = ~np.isnan(zt)
+            i = 0
+            while i < len(grid):
+                if not good[i]:
+                    i += 1; continue
+                j = i
+                while j < len(grid) and good[j]:
+                    j += 1
+                oz, oy = obstacle_near(max(0, i - pad), min(len(grid), j + pad))
+                if oz is not None:
+                    seg = np.arange(i, j); dy = np.abs(yt[seg] - oy)
+                    js = int(seg[int(np.argmin(dy))])
+                    if dy.min() < 0.12:                 # marker actually passed over the line
+                        clearance_rows.append([round(grid[js] - clap0, 3), k,
+                                               round(oz * 1000, 1), round(zt[js] * 1000, 1),
+                                               round((zt[js] - oz) * 1000, 1)])
+                i = j
+        clearance_rows.sort()
+        if clearance_rows:
+            say("Per-crossing clearance (marker directly over the obstacle top):")
+            for t, k, oz, fz, cl in clearance_rows:
+                say(f"  t={t:7.2f}s  {k:7s}  obstacle {oz:5.0f}  foot {fz:5.0f}  clearance {cl:5.0f} mm")
+
     fps = 1 / np.median(np.diff(grid))
     for k in FEET:
         world[k] = clean_trajectory(world[k], fps)
@@ -469,6 +518,10 @@ def main():
                 "y_mm": np.round(ground_w[:, 1] * 1000, 2),
                 "z_mm": np.round(ground_w[:, 2] * 1000, 2),
             }).to_excel(xw, sheet_name="obstacle", index=False)
+        if clearance_rows:                               # per-crossing foot clearance
+            pd.DataFrame(clearance_rows, columns=[
+                "time_s", "marker", "obstacle_z_mm", "foot_z_mm", "clearance_mm"
+            ]).to_excel(xw, sheet_name="clearance", index=False)
         if audio_df is not None:                         # clap-sync envelopes (MATLAB)
             audio_df.to_excel(xw, sheet_name="audio", index=False)
 

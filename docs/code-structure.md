@@ -41,7 +41,9 @@ See [[session-workflow]] for the calibrate → record → process loop.
   (L/R toe+heel) + obstacle red markers, **2 or 3 cameras** (auto-detects a cam3 clip +
   cam2↔cam3 calibration). Auto-detects recording mode (60 fps vs ¼ slow-mo), **clap-seeded
   rigid-shoe sync** for all cameras, **n-view** reconstruction (cam1+cam2 core, cam3 gap-fill),
-  world frame, **time zeroed at the clap**, xlsx (markers/obstacle/audio) + plots + audio figure,
+  world frame, **time zeroed at the clap**, **per-crossing clearance** (foot vs obstacle top,
+  obstacle re-measured per crossing so it can move between them), xlsx
+  (markers/obstacle/clearance/audio) + plots + audio figure,
   and **auto-writes clap-aligned review clips** to `synced_videos/`.
 - `sync_cut.py` — **`sync_cut N [sec]`**: cut a session's clips so they start N s before the
   clap → time-aligned `synced_videos/<cam>_synced.mp4` for manual review (analysis untouched).
