@@ -452,7 +452,7 @@ def main():
     say(f"Time origin: t=0 at the clap (cam1 @ {clap0:.2f}s in); "
         f"kept {int(keep.sum())} post-clap frames, dropped {int((~keep).sum())} pre-clap")
 
-    # --- Excel output: one .xlsx, sheet "markers" (feet, per-frame) + "ground" -
+    # --- Excel output: one .xlsx, sheet "markers" (feet, per-frame) + "obstacle" -
     import pandas as pd
     cols = {"time_s": np.round(t_out, 4)}
     for k in FEET:
@@ -464,11 +464,11 @@ def main():
         df_markers.to_excel(xw, sheet_name="markers", index=False)
         if ground_w is not None:
             pd.DataFrame({
-                "marker": [f"ground{i+1}" for i in range(len(ground_w))],
+                "marker": [f"obstacle{i+1}" for i in range(len(ground_w))],
                 "x_mm": np.round(ground_w[:, 0] * 1000, 2),
                 "y_mm": np.round(ground_w[:, 1] * 1000, 2),
                 "z_mm": np.round(ground_w[:, 2] * 1000, 2),
-            }).to_excel(xw, sheet_name="ground", index=False)
+            }).to_excel(xw, sheet_name="obstacle", index=False)
         if audio_df is not None:                         # clap-sync envelopes (MATLAB)
             audio_df.to_excel(xw, sheet_name="audio", index=False)
 
@@ -490,7 +490,7 @@ def main():
     fig.tight_layout(); fig.savefig(folder / f"{tid}_trajectory.png", dpi=110)
 
     say(f"\nSaved {xlsx_path.name} (sheets: markers"
-        + (" + ground" if ground_w is not None else "") + f"), {tid}_trajectory.png")
+        + (" + obstacle" if ground_w is not None else "") + f"), {tid}_trajectory.png")
 
     # --- Aligned review clips (for MANUAL viewing only; analysis used the originals)
     say("Aligned review clips (start 2 s before the clap) -> synced_videos/:")

@@ -8,7 +8,8 @@ function plot_trajectory(csvfile)
 % Reads the marker trajectories (a .xlsx "markers" sheet, or a plain .csv):
 %   time_s, <marker>_x_mm, <marker>_y_mm, <marker>_z_mm, ...
 % Any number of markers is supported (names auto-detected from the headers).
-% If the .xlsx also has a "ground" sheet, those static points are drawn in 3D.
+% If the .xlsx has an "obstacle" sheet (older files: "ground"), those static
+% points are drawn in 3D.
 %
 % Opens up to THREE figures: (1) the 3D trajectory, (2) X / Y / Z vs time, and
 % (3) the audio clap-sync (if the .xlsx has an 'audio' sheet) showing the clap
@@ -61,7 +62,7 @@ function plot_trajectory(csvfile)
     cmap = lines(max(nM, 3));
 
     % --- TWO separate figures (both tagged 'trajfig' so a re-run closes both) ---
-    % Figure 1: the 3D trajectory (carries the marker/ground toggles).
+    % Figure 1: the 3D trajectory (carries the marker/obstacle toggles).
     fig3 = figure('Name', 'Marker trajectories - 3D', 'Color', 'w', ...
                   'Tag', 'trajfig', 'Position', [70 130 740 700]);
     ax3 = axes('Parent', fig3, 'Position', [0.13 0.09 0.82 0.84]);
@@ -92,16 +93,21 @@ function plot_trajectory(csvfile)
         H(m) = h;
     end
 
-    % --- overlay the static ground markers (from the 'ground' sheet), if any ---
-    gh = gobjects(0);                       % handle(s) for the ground toggle
+    % --- overlay the static OBSTACLE markers (the 'obstacle' sheet; older files
+    %     used 'ground') ---
+    gh = gobjects(0);                       % handle(s) for the obstacle toggle
     if isxlsx
         try
             sh = sheetnames(datafile);
-            if any(strcmp(sh, 'ground'))
-                G = readtable(datafile, 'Sheet', 'ground');
+            osheet = '';
+            if any(strcmp(sh, 'obstacle')),   osheet = 'obstacle';
+            elseif any(strcmp(sh, 'ground')), osheet = 'ground';   % legacy files
+            end
+            if ~isempty(osheet)
+                G = readtable(datafile, 'Sheet', osheet);
                 gh = plot3(ax3, G.x_mm, G.y_mm, G.z_mm, 's-', 'Color', [0.85 0.12 0.12], ...
                       'LineWidth', 1.6, 'MarkerSize', 12, 'MarkerFaceColor', [0.85 0.12 0.12], ...
-                      'MarkerEdgeColor', 'k', 'DisplayName', 'ground');
+                      'MarkerEdgeColor', 'k', 'DisplayName', 'obstacle');
             end
         catch
         end
@@ -123,10 +129,10 @@ function plot_trajectory(csvfile)
             'Callback', @(src, ~) set(H(m), 'Visible', onoff(src.Value)));
     end
 
-    % --- ground on/off checkbox (static markers, drawn as squares joined by a line) ---
+    % --- obstacle on/off checkbox (static markers, drawn as squares joined by a line) ---
     nRows = nM;
     if ~isempty(gh)
-        uicontrol(fig3, 'Style', 'checkbox', 'String', 'ground', 'Value', 1, ...
+        uicontrol(fig3, 'Style', 'checkbox', 'String', 'obstacle', 'Value', 1, ...
             'Units', 'normalized', 'Position', [0.05 0.955-0.030*nM 0.16 0.028], ...
             'BackgroundColor', 'w', 'FontWeight', 'bold', 'ForegroundColor', [0.85 0.12 0.12], ...
             'Callback', @(src, ~) set(gh, 'Visible', onoff(src.Value)));
