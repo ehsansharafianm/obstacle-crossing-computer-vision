@@ -1,23 +1,35 @@
 function plot_trajectory(csvfile)
-% PLOT_TRAJECTORY  Interactive 3D + X/Y/Z-vs-time plot of marker trajectories.
+% PLOT_TRAJECTORY  Interactive 3D + X/Y/Z-vs-time plot of marker trajectories,
+% styled for presentation (Arial, bold labels, thick lines/box), with toggles.
 %
 %   plot_trajectory                 % opens a file picker
-%   plot_trajectory('test07')       % -> code/sessions/test07/test07_trajectory.xlsx
+%   plot_trajectory('test13')       % -> code/sessions/test13/test13_trajectory.xlsx
 %   plot_trajectory('foot_trajectory.csv')      % explicit file / full path
 %
 % Reads the marker trajectories (a .xlsx "markers" sheet, or a plain .csv):
 %   time_s, <marker>_x_mm, <marker>_y_mm, <marker>_z_mm, ...
 % Any number of markers is supported (names auto-detected from the headers).
-% If the .xlsx has an "obstacle" sheet (older files: "ground"), those static
-% points are drawn in 3D.
+% Markers named obstacle* are drawn as scatter POINTS (quasi-static); feet as lines.
 %
 % Opens up to THREE figures: (1) the 3D trajectory, (2) X / Y / Z vs time, and
-% (3) the audio clap-sync (if the .xlsx has an 'audio' sheet) showing the clap
-% jumps before/after alignment. Re-running closes the previous set first.
-% Controls (on the 3D figure, top-left):
+% (3) the audio clap-sync (if the .xlsx has an 'audio' sheet). Re-running closes
+% the previous set first. Controls (on the 3D figure, top-left):
 %   * one checkbox per marker  -> toggle it ON/OFF in BOTH panels
-%   * Line / Scatter dropdown  -> switch every marker between a connected line
-%                                 and points only.
+%   * Line / Scatter dropdown  -> switch the feet between line and points
+%                                 (obstacle markers stay scatter points).
+
+    % ===================== STYLE (edit here) =====================
+    S.font    = 'Arial';   % font family
+    S.xlbl    = 25;        % x-axis label size
+    S.ylbl    = 25;        % y/z-axis label size
+    S.tick    = 20;        % axis tick-number size
+    S.title   = 22;        % title size
+    S.legend  = 16;        % legend size
+    S.trajLW  = 2.5;       % trajectory line width
+    S.boxLW   = 2;         % axis box border width
+    S.footPt  = 8;         % foot scatter point size (Scatter mode)
+    S.obstPt  = 16;        % obstacle scatter point size
+    % =============================================================
 
     if nargin < 1 || isempty(csvfile)
         [f, p] = uigetfile({'*.xlsx;*.csv', 'Trajectory files'}, 'Select a trajectory file');
@@ -26,7 +38,7 @@ function plot_trajectory(csvfile)
     elseif exist(csvfile, 'file')
         datafile = csvfile;                                   % explicit path given
     else
-        % A bare test id (e.g. 'test07') -> code/sessions/<id>/<id>_trajectory.xlsx
+        % A bare test id (e.g. 'test13') -> code/sessions/<id>/<id>_trajectory.xlsx
         % (falls back to .csv), resolved relative to this .m file.
         id   = csvfile;
         root = fileparts(fileparts(mfilename('fullpath')));   % repo root
@@ -61,70 +73,79 @@ function plot_trajectory(csvfile)
     if nM == 0, error('No "<marker>_x_mm" columns found.'); end
     cmap = lines(max(nM, 3));
 
-    % --- TWO separate figures (both tagged 'trajfig' so a re-run closes both) ---
-    % Figure 1: the 3D trajectory (carries the marker/obstacle toggles).
+    % --- Figure 1: the 3D trajectory (carries the marker/obstacle toggles) ---
     fig3 = figure('Name', 'Marker trajectories - 3D', 'Color', 'w', ...
-                  'Tag', 'trajfig', 'Position', [70 130 740 700]);
-    ax3 = axes('Parent', fig3, 'Position', [0.13 0.09 0.82 0.84]);
+                  'Tag', 'trajfig', 'Position', [70 120 780 720]);
+    ax3 = axes('Parent', fig3, 'Position', [0.15 0.11 0.80 0.80]);
     hold(ax3, 'on'); grid(ax3, 'on'); box(ax3, 'on');
-    xlabel(ax3, 'X (mm)'); ylabel(ax3, 'Y (mm)'); zlabel(ax3, 'Z (mm)');
-    title(ax3, '3D trajectory'); view(ax3, 3); axis(ax3, 'equal'); rotate3d(ax3, 'on');
+    xlabel(ax3, 'X (mm)', 'FontSize', S.xlbl, 'FontName', S.font, 'FontWeight', 'bold');
+    ylabel(ax3, 'Y (mm)', 'FontSize', S.ylbl, 'FontName', S.font, 'FontWeight', 'bold');
+    zlabel(ax3, 'Z (mm)', 'FontSize', S.ylbl, 'FontName', S.font, 'FontWeight', 'bold');
+    title(ax3, '3D trajectory', 'FontSize', S.title, 'FontName', S.font, 'FontWeight', 'bold');
+    view(ax3, 3); axis(ax3, 'equal'); rotate3d(ax3, 'on');
 
-    % Figure 2: X / Y / Z vs time.
+    % --- Figure 2: X / Y / Z vs time ---
     figp = figure('Name', 'Marker positions vs time', 'Color', 'w', ...
-                  'Tag', 'trajfig', 'Position', [830 130 640 700]);
-    axX = axes('Parent', figp, 'Position', [0.12 0.70 0.83 0.25]); prep(axX); ylabel(axX, 'X (mm)');
-    title(axX, 'Position vs time');
-    axY = axes('Parent', figp, 'Position', [0.12 0.40 0.83 0.25]); prep(axY); ylabel(axY, 'Y (mm)');
-    axZ = axes('Parent', figp, 'Position', [0.12 0.09 0.83 0.25]); prep(axZ);
-    xlabel(axZ, 'time (s)'); ylabel(axZ, 'Z (mm)');
+                  'Tag', 'trajfig', 'Position', [860 120 700 720]);
+    axX = axes('Parent', figp, 'Position', [0.15 0.70 0.80 0.25]); prep(axX);
+    ylabel(axX, 'X (mm)', 'FontSize', S.ylbl, 'FontName', S.font, 'FontWeight', 'bold');
+    title(axX, 'Position vs time', 'FontSize', S.title, 'FontName', S.font, 'FontWeight', 'bold');
+    axY = axes('Parent', figp, 'Position', [0.15 0.40 0.80 0.25]); prep(axY);
+    ylabel(axY, 'Y (mm)', 'FontSize', S.ylbl, 'FontName', S.font, 'FontWeight', 'bold');
+    axZ = axes('Parent', figp, 'Position', [0.15 0.10 0.80 0.25]); prep(axZ);
+    xlabel(axZ, 'time (s)', 'FontSize', S.xlbl, 'FontName', S.font, 'FontWeight', 'bold');
+    ylabel(axZ, 'Z (mm)', 'FontSize', S.ylbl, 'FontName', S.font, 'FontWeight', 'bold');
 
-    % --- plot each marker, storing its graphics handles ---
-    % Feet are drawn as connected trajectories; the obstacle markers are quasi-
-    % static, so they're drawn as scatter POINTS (and kept that way regardless of
-    % the Line/Scatter toggle below).
+    % --- plot each marker: feet as connected trajectories; obstacle* markers as
+    %     scatter POINTS (kept as points regardless of the Line/Scatter toggle) ---
     H = containers.Map();
     isObstacle = containers.Map();
     for k = 1:nM
         m = markers{k}; c = cmap(k, :);
         x = T.([m '_x_mm']); y = T.([m '_y_mm']); z = T.([m '_z_mm']);
         obs = startsWith(m, 'obstacle'); isObstacle(m) = obs;
-        if obs, ls = 'none'; mk = '.'; ms = 12; else, ls = '-'; mk = 'none'; ms = 7; end
+        if obs, ls = 'none'; mk = '.'; ms = S.obstPt; else, ls = '-'; mk = 'none'; ms = S.footPt; end
         h = gobjects(1, 4);
         h(1) = plot3(ax3, x, y, z, 'Color', c, 'LineStyle', ls, 'Marker', mk, ...
-                     'MarkerSize', ms, 'LineWidth', 1.2, 'DisplayName', m);
-        h(2) = plot(axX, t, x, 'Color', c, 'LineStyle', ls, 'Marker', mk, 'MarkerSize', ms, 'LineWidth', 1.2);
-        h(3) = plot(axY, t, y, 'Color', c, 'LineStyle', ls, 'Marker', mk, 'MarkerSize', ms, 'LineWidth', 1.2);
-        h(4) = plot(axZ, t, z, 'Color', c, 'LineStyle', ls, 'Marker', mk, 'MarkerSize', ms, 'LineWidth', 1.2);
+                     'MarkerSize', ms, 'LineWidth', S.trajLW, 'DisplayName', m);
+        h(2) = plot(axX, t, x, 'Color', c, 'LineStyle', ls, 'Marker', mk, 'MarkerSize', ms, 'LineWidth', S.trajLW);
+        h(3) = plot(axY, t, y, 'Color', c, 'LineStyle', ls, 'Marker', mk, 'MarkerSize', ms, 'LineWidth', S.trajLW);
+        h(4) = plot(axZ, t, z, 'Color', c, 'LineStyle', ls, 'Marker', mk, 'MarkerSize', ms, 'LineWidth', S.trajLW);
         H(m) = h;
     end
 
-    % --- overlay the static OBSTACLE markers (the 'obstacle' sheet; older files
-    %     used 'ground') ---
-    gh = gobjects(0);                       % handle(s) for the obstacle toggle
+    % --- overlay a legacy static OBSTACLE sheet ('obstacle' or old 'ground'), if any ---
+    gh = gobjects(0);
     if isxlsx
         try
             sh = sheetnames(datafile);
             osheet = '';
             if any(strcmp(sh, 'obstacle')),   osheet = 'obstacle';
-            elseif any(strcmp(sh, 'ground')), osheet = 'ground';   % legacy files
+            elseif any(strcmp(sh, 'ground')), osheet = 'ground';
             end
             if ~isempty(osheet)
                 G = readtable(datafile, 'Sheet', osheet);
-                gh = plot3(ax3, G.x_mm, G.y_mm, G.z_mm, 's-', 'Color', [0.85 0.12 0.12], ...
-                      'LineWidth', 1.6, 'MarkerSize', 12, 'MarkerFaceColor', [0.85 0.12 0.12], ...
+                gh = plot3(ax3, G.x_mm, G.y_mm, G.z_mm, 's', 'Color', [0.85 0.12 0.12], ...
+                      'LineWidth', 1.6, 'MarkerSize', S.obstPt, 'MarkerFaceColor', [0.85 0.12 0.12], ...
                       'MarkerEdgeColor', 'k', 'DisplayName', 'obstacle');
             end
         catch
         end
     end
-    legend(ax3, 'show', 'Location', 'best', 'Interpreter', 'none');
+    lg = legend(ax3, 'show', 'Location', 'best', 'Interpreter', 'none');
+    lg.FontSize = S.legend; lg.FontName = S.font;
 
     % --- set time axes to the data range, THEN link (order matters) ---
     tv = t(any(~isnan(T{:, 2:end}), 2));           % times with any marker data
     if ~isempty(tv), xlim(axX, [min(tv) max(tv)]); end
     arrayfun(@(a) axis(a, 'auto y'), [axX axY axZ]);
     linkaxes([axX axY axZ], 'x');
+
+    % --- apply the shared publication styling to every data axis ---
+    for ax = [ax3 axX axY axZ]
+        set(ax, 'FontName', S.font, 'FontSize', S.tick, 'FontWeight', 'bold', ...
+            'LineWidth', S.boxLW, 'Box', 'on');
+    end
 
     % --- per-marker on/off checkboxes ---
     for k = 1:nM
@@ -135,7 +156,7 @@ function plot_trajectory(csvfile)
             'Callback', @(src, ~) set(H(m), 'Visible', onoff(src.Value)));
     end
 
-    % --- obstacle on/off checkbox (static markers, drawn as squares joined by a line) ---
+    % --- obstacle (legacy static overlay) on/off checkbox ---
     nRows = nM;
     if ~isempty(gh)
         uicontrol(fig3, 'Style', 'checkbox', 'String', 'obstacle', 'Value', 1, ...
@@ -145,19 +166,19 @@ function plot_trajectory(csvfile)
         nRows = nM + 1;
     end
 
-    % --- Line / Scatter style dropdown ---
+    % --- Line / Scatter style dropdown (feet only; obstacle stays scatter) ---
     uicontrol(fig3, 'Style', 'text', 'String', 'style:', 'Units', 'normalized', ...
         'Position', [0.05 0.955-0.030*nRows-0.03 0.05 0.026], 'BackgroundColor', 'w', ...
         'HorizontalAlignment', 'left');
     uicontrol(fig3, 'Style', 'popupmenu', 'String', {'Line', 'Scatter'}, ...
         'Units', 'normalized', 'Position', [0.10 0.955-0.030*nRows-0.03 0.11 0.028], ...
-        'Callback', @(src, ~) setstyle(H, src.Value, isObstacle));
+        'Callback', @(src, ~) setstyle(H, src.Value, isObstacle, S));
 
     % --- Figure 3: the audio clap sync for ALL cameras (needs an 'audio' sheet) --
     if isxlsx && any(strcmp(sheetnames(datafile), 'audio'))
         A = readtable(datafile, 'Sheet', 'audio'); ta = A.time_s;
         figa = figure('Name', 'Audio clap sync', 'Color', 'w', ...
-                      'Tag', 'trajfig', 'Position', [200 90 900 520]);
+                      'Tag', 'trajfig', 'Position', [200 90 940 560]);
         cams = {'cam1', 'cam2', 'cam3'};
         cc = [0.12 0.47 0.71; 0.84 0.19 0.42; 0.17 0.63 0.17];
         axa1 = subplot(2, 1, 1, 'Parent', figa); hold(axa1, 'on'); grid(axa1, 'on');
@@ -166,21 +187,27 @@ function plot_trajectory(csvfile)
         for i = 1:numel(cams)
             raw = [cams{i} '_env']; aln = [cams{i} '_env_aligned'];
             if ismember(raw, A.Properties.VariableNames)
-                plot(axa1, ta, A.(raw), 'Color', cc(i, :), 'LineWidth', 1.0);
-                plot(axa2, ta, A.(aln), 'Color', cc(i, :), 'LineWidth', 1.0);
+                plot(axa1, ta, A.(raw), 'Color', cc(i, :), 'LineWidth', S.trajLW);
+                plot(axa2, ta, A.(aln), 'Color', cc(i, :), 'LineWidth', S.trajLW);
                 leg{end+1} = cams{i}; %#ok<AGROW>
             end
         end
-        title(axa1, 'Audio energy - clap jumps BEFORE alignment (the spikes are the claps)');
-        ylabel(axa1, 'energy'); legend(axa1, leg, 'Location', 'northeast');
-        title(axa2, 'AFTER alignment - all claps line up');
-        xlabel(axa2, 'time (s, real)'); ylabel(axa2, 'energy');
-        legend(axa2, leg, 'Location', 'northeast');
+        title(axa1, 'Audio energy - clap jumps BEFORE alignment', 'FontSize', S.title, 'FontName', S.font, 'FontWeight', 'bold');
+        ylabel(axa1, 'energy', 'FontSize', S.ylbl, 'FontName', S.font, 'FontWeight', 'bold');
+        lg1 = legend(axa1, leg, 'Location', 'northeast'); lg1.FontSize = S.legend; lg1.FontName = S.font;
+        title(axa2, 'AFTER alignment - all claps line up', 'FontSize', S.title, 'FontName', S.font, 'FontWeight', 'bold');
+        xlabel(axa2, 'time (s, real)', 'FontSize', S.xlbl, 'FontName', S.font, 'FontWeight', 'bold');
+        ylabel(axa2, 'energy', 'FontSize', S.ylbl, 'FontName', S.font, 'FontWeight', 'bold');
+        lg2 = legend(axa2, leg, 'Location', 'northeast'); lg2.FontSize = S.legend; lg2.FontName = S.font;
+        for ax = [axa1 axa2]
+            set(ax, 'FontName', S.font, 'FontSize', S.tick, 'FontWeight', 'bold', ...
+                'LineWidth', S.boxLW, 'Box', 'on');
+        end
         linkaxes([axa1 axa2], 'x');
     end
 end
 
-function setstyle(H, mode, isObstacle)
+function setstyle(H, mode, isObstacle, S)
     ks = keys(H);
     for i = 1:numel(ks)
         if isObstacle(ks{i}), continue; end   % obstacle stays scatter points
@@ -188,7 +215,7 @@ function setstyle(H, mode, isObstacle)
         if mode == 1          % Line
             set(h, 'LineStyle', '-', 'Marker', 'none');
         else                  % Scatter
-            set(h, 'LineStyle', 'none', 'Marker', '.', 'MarkerSize', 8);
+            set(h, 'LineStyle', 'none', 'Marker', '.', 'MarkerSize', S.footPt);
         end
     end
 end
