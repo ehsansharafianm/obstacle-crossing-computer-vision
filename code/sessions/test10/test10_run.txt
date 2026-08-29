@@ -1,5 +1,6 @@
 Test: test10
 
+Run started: 2026-08-29 12:27:46
 Recording mode: normal (~60 fps)
 [test10] cam1.mp4 (cam1): loaded cache in 0.0s
 [test10] cam2.mp4 (cam2): loaded cache in 0.0s
@@ -11,20 +12,20 @@ Recording mode: normal (~60 fps)
   R_heel  cam1 59%  cam2 28%  cam3 30%
 Clap: cam1 @ 19.080s (x3), cam2 @ 11.699s (x4)  -> cam2 +7.381s
 Motion candidate: cam2 -5.017s
--> cam2 sync: +7.321s = cam1   (toe-heel scatter 19 mm)  [clap agrees]
+-> cam2 sync: +7.361s = cam1   (toe-heel scatter 18 mm)  [clap agrees]
 Clap: cam3 @ 5.328s (x4)  -> cam3 +13.752s
--> cam3 sync: +13.692s = cam1   (cam2+cam3 scatter 20 mm)  [clap agrees]
+-> cam3 sync: +13.732s = cam1   (cam2+cam3 scatter 25 mm)  [clap agrees]
 Audio-sync figure -> test10_audiosync.png  (3 cameras, clap jumps + alignment)
 Reconstructing from 3 cameras (marker needs >=2 to get a 3D point)
-  reconstructed points: 5284 from cam1+cam2 (wide baseline), 1394 gap-filled with cam3
-  L foot: toe-heel 302 mm, dropped 212 outliers
-  R foot: toe-heel 291 mm, dropped 400 outliers
-Obstacle markers (world, mm): (-365,267,Z=389) | (180,264,Z=361)
+  reconstructed points: 5260 from cam1+cam2 (wide baseline), 1414 gap-filled with cam3
+  L foot: toe-heel 301 mm, dropped 302 outliers
+  R foot: toe-heel 291 mm, dropped 502 outliers
+Obstacle markers (world, mm): (248,16,Z=404) | (-295,31,Z=379)
 Output: world frame (Z = height above floor)
-  L_toe   27% reconstructed
-  L_heel  27% reconstructed
-  R_toe   23% reconstructed
-  R_heel  23% reconstructed
+  L_toe   25% reconstructed
+  L_heel  25% reconstructed
+  R_toe   22% reconstructed
+  R_heel  21% reconstructed
 Time origin: t=0 at the clap (cam1 @ 19.08s in); kept 4917 post-clap frames, dropped 1135 pre-clap
 
 Saved test10_trajectory.xlsx (sheets: markers + ground), test10_trajectory.png
@@ -33,4 +34,7 @@ Aligned review clips (start 2 s before the clap) -> synced_videos/:
   cam2: synced_videos/cam2_synced.mp4 already exists -- kept
   cam3: synced_videos/cam3_synced.mp4 already exists -- kept
   3 aligned review clip(s) -> sessions\test10\synced_videos
-Processing time: 0 min 15.1 s  (15.1 s total)
+
+Run started:  2026-08-29 12:27:46
+Run finished: 2026-08-29 12:28:04
+Total processing time: 0 min 17.2 s  (17.2 s)

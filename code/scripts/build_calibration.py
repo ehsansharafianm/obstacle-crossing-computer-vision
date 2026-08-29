@@ -28,6 +28,8 @@ Usage (from code/):  python scripts/build_calibration.py 4      (-> calib04)
 """
 import shutil
 import sys
+import time
+from datetime import datetime
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))              # scripts/
@@ -101,6 +103,8 @@ def main():
             f"    cam1_floor / cam2_floor  = board flat on the floor (world frame)\n"
             f"  then re-run:  python scripts/build_calibration.py {cid}\n")
 
+    t_start = time.perf_counter()
+    wall_start = datetime.now()
     log = [f"Calibration session: {cid}", ""]
 
     def say(m=""):
@@ -172,6 +176,11 @@ def main():
         + (" + stereo_extrinsics_cam2cam3.npz" if c3e is not None and intr3_path.exists() else "") + ").")
     say("Every test recorded in THIS session (cameras unmoved) now uses this calibration.")
 
+    elapsed = time.perf_counter() - t_start
+    mins, secs = divmod(elapsed, 60)
+    say(f"\nRun started:  {wall_start:%Y-%m-%d %H:%M:%S}")
+    say(f"Run finished: {datetime.now():%Y-%m-%d %H:%M:%S}")
+    say(f"Total processing time: {int(mins)} min {secs:.1f} s  ({elapsed:.1f} s)")
     (folder / "calib_run.txt").write_text("\n".join(log) + "\n", encoding="utf-8")
     print(f"\nSaved session copy + run log -> {folder}")
 

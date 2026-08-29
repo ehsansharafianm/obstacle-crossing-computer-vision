@@ -7,6 +7,7 @@ Usage (from code/):  python scripts/build_multi_trajectory.py 7
 import csv
 import sys
 import time
+from datetime import datetime
 from pathlib import Path
 
 import cv2
@@ -195,10 +196,13 @@ def main():
         raise SystemExit(f"[{tid}] need cam1/cam2 clips in {folder.resolve()}")
 
     t_start = time.perf_counter()
+    wall_start = datetime.now()
     log = [f"Test: {tid}", ""]
 
     def say(m=""):
         print(m); log.append(m)
+
+    say(f"Run started: {wall_start:%Y-%m-%d %H:%M:%S}")
 
     global SLOWMO
     SLOWMO = detect_slowmo(cam1)
@@ -497,8 +501,11 @@ def main():
         say(f"  sync_cut skipped: {e}")
 
     elapsed = time.perf_counter() - t_start
+    wall_end = datetime.now()
     mins, secs = divmod(elapsed, 60)
-    say(f"Processing time: {int(mins)} min {secs:.1f} s  ({elapsed:.1f} s total)")
+    say(f"\nRun started:  {wall_start:%Y-%m-%d %H:%M:%S}")
+    say(f"Run finished: {wall_end:%Y-%m-%d %H:%M:%S}")
+    say(f"Total processing time: {int(mins)} min {secs:.1f} s  ({elapsed:.1f} s)")
     (folder / f"{tid}_run.txt").write_text("\n".join(log) + "\n", encoding="utf-8")
 
 
