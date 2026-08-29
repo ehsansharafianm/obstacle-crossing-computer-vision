@@ -14,7 +14,7 @@ code/
   calibration/    CALIB sessions: calibNN/  +  shared/active artifacts at root
   tests/          synthetic ground-truth tests
   data/, results/ raw videos + old scratch                 (git-ignored)
-matlab/           plot_trajectory.m (results viewer; takes a test id)
+matlab/           plot_trajectory.m (results viewer; takes a test id; incl. clap-sync figure)
 slides/           advisor presentation (pptx + build_deck.js)
 ```
 See [[session-workflow]] for the calibrate → record → process loop.
