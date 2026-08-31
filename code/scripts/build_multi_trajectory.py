@@ -53,15 +53,18 @@ def find_cam_video(folder, cam):
     return hits[0] if hits else None
 
 
-def track(video):
+def track(video, progress=None):
     """Track markers at the grid rate (every SLOWMO-th real frame). Uses grab() to
     skip-decode the frames we don't score. Each foot = the CLOSEST toe/heel pair
     (clutter-safe: a same-coloured background object with no partner is ignored).
-    ts is in REAL seconds."""
+    ts is in REAL seconds. `progress(frac, eta_s)` (optional) is called ~once per 5%
+    for a live percent + ETA -- it fires ~20 times total, so it costs nothing."""
     cap = cv2.VideoCapture(str(video))
     fps = (cap.get(cv2.CAP_PROP_FPS) or 30.0) * SLOWMO
+    total = int(cap.get(cv2.CAP_PROP_FRAME_COUNT)) or 0
     ts, F, G = [], {k: [] for k in FEET}, []
     idx = 0
+    t0 = time.perf_counter(); next_mark = 0.05
     while True:
         if not cap.grab():
             break
@@ -75,11 +78,15 @@ def track(video):
                 F[k].append(d[k] if d[k] is not None else (np.nan, np.nan))
             G.append(d["ground"])
         idx += 1
+        if progress and total and idx / total >= next_mark:
+            frac = idx / total; el = time.perf_counter() - t0
+            progress(frac, el * (1 - frac) / frac)
+            next_mark = (int(frac / 0.05) + 1) * 0.05
     cap.release()
     return np.array(ts), {k: np.array(F[k], float) for k in FEET}, G
 
 
-def load_or_track(video, cache_path):
+def load_or_track(video, cache_path, progress=None):
     """Track, caching the 2D detections keyed by the clip's mtime so re-runs skip
     the slow decode. Delete the *_track_cache.npz to force a fresh track."""
     mt = video.stat().st_mtime
@@ -88,7 +95,7 @@ def load_or_track(video, cache_path):
         if float(z["mtime"]) == mt:
             F = {k: z[f"F_{k}"] for k in FEET}
             return z["ts"], F, list(z["G"]), True
-    ts, F, G = track(video)
+    ts, F, G = track(video, progress=progress)
     np.savez(cache_path, ts=ts, G=np.array(G, dtype=object), mtime=mt,
              **{f"F_{k}": F[k] for k in FEET})
     return ts, F, G, False
@@ -201,7 +208,7 @@ def main():
     log = [f"Test: {tid}", ""]
 
     def say(m=""):
-        print(m); log.append(m)
+        print(m, flush=True); log.append(m)      # flush so live progress shows immediately
 
     say(f"Run started: {wall_start:%Y-%m-%d %H:%M:%S}")
 
@@ -320,7 +327,11 @@ def main():
 
     def timed_track(cam, tag):
         t0 = time.perf_counter()
-        ts, F, G, cached = load_or_track(cam, folder / f"{tid}_{tag}_track_cache.npz")
+        def prog(frac, eta):
+            say(f"[{tid}] {cam.name} ({tag}): tracking {frac*100:3.0f}%  "
+                f"(~{eta/60:.1f} min left)")
+        ts, F, G, cached = load_or_track(cam, folder / f"{tid}_{tag}_track_cache.npz",
+                                         progress=prog)
         say(f"[{tid}] {cam.name} ({tag}): {'loaded cache' if cached else 'tracked'} "
             f"in {time.perf_counter()-t0:.1f}s")
         return ts, F, G
