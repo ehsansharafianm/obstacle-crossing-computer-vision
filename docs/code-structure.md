@@ -9,7 +9,8 @@ code/
   src/occ/        Python package — the pipeline engine (import as `occ.*`)
   scripts/        runnable entry points (calibration, trajectories, intrinsics)
   run_calib.bat   wrapper: run_calib N  → build_calibration.py
-  run_test.bat    wrapper: run_test  N  → build_foot_trajectory.py
+  run_multi.bat   wrapper: run_multi N  → build_multi_trajectory.py  (MAIN tool)
+  run_test.bat    wrapper: run_test  N  → build_foot_trajectory.py   (legacy single-foot)
   sessions/       TEST sessions:  testNN/ (2 clips → CSV + plot + run.txt)
   calibration/    CALIB sessions: calibNN/  +  shared/active artifacts at root
   tests/          synthetic ground-truth tests
