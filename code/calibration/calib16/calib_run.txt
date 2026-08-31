@@ -1,0 +1,24 @@
+Calibration session: calib16
+
+[calib16]  extrinsics: cam1_ext.mp4 + cam2_ext.mp4   floor: cam1_floor.mp4 + cam2_floor.mp4
+  board: calibration/board_measured_large.json
+
+-- Stereo extrinsics --
+pairs used = 11   RMS = 1.481 px   baseline = 2.251 m
+
+-- World frame (floor) --
+floor-flatness residual = 0.67 mm   camera height = 1247 mm
+Axis check (mm):  cam1 world (X=-1042, Y=121)   cam2 world (X=1167, Y=552)
+  +X points toward the cam2 side; +Y toward the cam2 side.
+  (Set X/Y by how you lay the floor board: origin corner, long edge = +X, short = +Y.)
+
+-- cam2<->cam3 extrinsics (3rd camera) --
+pairs used = 7   RMS = 1.472 px   baseline = 1.281 m
+cam3 calibrated -> 3-camera reconstruction enabled for this session.
+
+Active calibration updated (calibration/stereo_extrinsics.npz + world_transform.npz + stereo_extrinsics_cam2cam3.npz).
+Every test recorded in THIS session (cameras unmoved) now uses this calibration.
+
+Run started:  2026-08-31 16:51:34
+Run finished: 2026-08-31 17:12:36
+Total processing time: 21 min 1.8 s  (1261.8 s)

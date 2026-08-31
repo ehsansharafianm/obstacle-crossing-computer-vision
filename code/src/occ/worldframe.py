@@ -55,6 +55,21 @@ class WorldTransform:
         return WorldTransform(z["R"], z["t"], float(z["rms_mm"]))
 
 
+def _detect_board_multiscale(gray, det, scales=(1, 2, 3)):
+    """Detect the board, retrying at upscaled resolution when it is small/far in
+    frame -- e.g. the floor board placed near one camera reads as only a few px
+    per ArUco marker in a distant camera. Native scale is tried first (no cost
+    when it works). Corner coords are returned in ORIGINAL pixels. Returns
+    (corners(N,2), ids) or (None, None)."""
+    for sc in scales:
+        g = gray if sc == 1 else cv2.resize(gray, None, fx=sc, fy=sc,
+                                            interpolation=cv2.INTER_CUBIC)
+        c, i = detect_board(g, det)
+        if i is not None and len(i) >= 6:
+            return np.asarray(c).reshape(-1, 2) / float(sc), i
+    return None, None
+
+
 def _settled_corners(video, det, max_samples=120, tol_px=25.0):
     """Median 2D board-corner positions over the board's STATIONARY period.
 
@@ -74,10 +89,9 @@ def _settled_corners(video, det, max_samples=120, tol_px=25.0):
         ok, im = cap.read()
         if not ok:
             continue
-        c, i = detect_board(cv2.cvtColor(im, cv2.COLOR_BGR2GRAY), det)
-        if i is None or len(i) < 6:
+        c, i = _detect_board_multiscale(cv2.cvtColor(im, cv2.COLOR_BGR2GRAY), det)
+        if i is None:
             continue
-        c = np.asarray(c).reshape(-1, 2)
         frames.append((c.mean(0), {int(v): c[k] for k, v in enumerate(i.flatten())}))
     cap.release()
     if len(frames) < 3:
