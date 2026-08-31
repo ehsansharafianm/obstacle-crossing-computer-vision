@@ -327,9 +327,9 @@ def main():
 
     def timed_track(cam, tag):
         t0 = time.perf_counter()
-        def prog(frac, eta):
-            say(f"[{tid}] {cam.name} ({tag}): tracking {frac*100:3.0f}%  "
-                f"(~{eta/60:.1f} min left)")
+        def prog(frac, eta):                              # live only -- kept OUT of run.txt
+            print(f"[{tid}] {cam.name} ({tag}): tracking {frac*100:3.0f}%  "
+                  f"(~{eta/60:.1f} min left)", flush=True)
         ts, F, G, cached = load_or_track(cam, folder / f"{tid}_{tag}_track_cache.npz",
                                          progress=prog)
         say(f"[{tid}] {cam.name} ({tag}): {'loaded cache' if cached else 'tracked'} "
