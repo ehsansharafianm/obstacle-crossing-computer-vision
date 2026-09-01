@@ -536,6 +536,12 @@ def main():
             if rerr > 0.02:                             # ~28 px: gross mismatch (occlusion)
                 n_rej += 1; continue
             pw = W.apply(pts)
+            # Physical-plausibility gate: a near-degenerate (occlusion) match can
+            # triangulate to a huge distance yet still REPROJECT well, so it slips
+            # past the reproj gate and can corrupt the rolling-median baseline. Reject
+            # any red outside the real capture volume (metres) -- kills the blow-ups.
+            if (np.abs(pw[:, :2]) > 2.0).any() or (pw[:, 2] < -0.1).any() or (pw[:, 2] > 1.5).any():
+                n_rej += 1; continue
             pw = pw[np.argsort(pw[:, 0])]               # sort by world X -> stable 1/2
             world["obstacle1"][i] = pw[0]; world["obstacle2"][i] = pw[1]
             n_obs += 1
