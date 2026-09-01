@@ -4,17 +4,25 @@ How the code is organised. Engineering lives in `code/`; see [[progress-log]]
 for what each piece achieved and [[automated-pipeline]] for the target system.
 
 ## Layout
+Raw **videos** and generated **results** live in two top-level trees, kept apart
+(videos are heavy + git-ignored; results are small + versioned). `code/` holds only code.
+Paths are anchored to the repo root by `occ/paths.py`, so scripts work from any CWD.
 ```
 code/
   src/occ/        Python package — the pipeline engine (import as `occ.*`)
+    paths.py      single source of truth for where videos/results live on disk
   scripts/        runnable entry points (calibration, trajectories, intrinsics)
   run_calib.bat   wrapper: run_calib N  → build_calibration.py
   run_multi.bat   wrapper: run_multi N  → build_multi_trajectory.py  (MAIN tool)
-  run_test.bat    wrapper: run_test  N  → build_foot_trajectory.py   (legacy single-foot)
-  sessions/       TEST sessions:  testNN/ (2 clips → CSV + plot + run.txt)
-  calibration/    CALIB sessions: calibNN/  +  shared/active artifacts at root
   tests/          synthetic ground-truth tests
-  data/, results/ raw videos + old scratch                 (git-ignored)
+  data/, results/ old scratch                              (git-ignored)
+videos/           RAW video only (git-ignored, heavy)
+  sessions/testNN/     cam1.mp4, cam2.mp4, cam3.mp4
+  calibration/calibNN/ cam*_ext.*, cam*_floor.*
+results/          everything generated (versioned)
+  sessions/testNN/     xlsx, png, run.txt, *_track_cache.npz, synced_videos/
+  calibration/active/  intrinsics_*.npz, active extrinsics/world .npz, board specs
+  calibration/calibNN/ per-calibration result .npz + calib_run.txt
 matlab/           plot_trajectory.m (results viewer; takes a test id; incl. clap-sync figure)
 slides/           advisor presentation (pptx + build_deck.js)
 ```
@@ -56,7 +64,7 @@ build_calibration prints the resulting directions so you confirm them per calibr
 **Intrinsics (per lens, rarely rerun)**
 - `make_calib_board.py` / `make_big_calib_board.py` — generate printable ChArUco boards (small / big tiled).
 - `extract_calib_frames.py` — pull sharp, pose-diverse frames from a board video.
-- `run_intrinsics.py` — calibrate one camera → `calibration/intrinsics_<cam>.npz`.
+- `run_intrinsics.py` — calibrate one camera → `results/calibration/active/intrinsics_<cam>.npz`.
 - `check_calib_stability.py` — split-half focal-length stability test.
 
 **Extrinsics internals & validation**
@@ -69,12 +77,15 @@ build_calibration prints the resulting directions so you confirm them per calibr
 - `test_geometry_synthetic.py` — triangulation & extrinsics recovery vs. ground truth.
 - `test_accuracy_check_synthetic.py` — rod accuracy-check math.
 
-## Calibration artifacts (the reusable "profile")
-- `intrinsics_cam1.npz`, `intrinsics_cam2.npz` — per-lens (once per iPad).
-- `stereo_extrinsics.npz` — camera pair pose (per setup).
+## Calibration artifacts (the reusable "profile") — in `results/calibration/active/`
+- `intrinsics_cam1/2/3.npz` — per-lens (once per phone).
+- `stereo_extrinsics.npz`, `stereo_extrinsics_cam2cam3.npz` — camera-pair poses (per setup).
 - `world_transform.npz` — camera→floor frame (per setup).
 - `board_measured*.json` — true printed board sizes; `capture_settings.json`; `rod_markers.json`;
   `*_result.json` — recorded result summaries.
+
+These are the inputs the pipeline READS every run. `build_calibration` writes each
+session's copy to `results/calibration/calibNN/` and promotes the winners here.
 
 ## Pipeline data flow
 ```

@@ -84,8 +84,9 @@ def main():
                         cv2.FONT_HERSHEY_SIMPLEX, 0.6, blk, 1, cv2.LINE_AA)
             pages.append(Image.fromarray(cv2.cvtColor(page, cv2.COLOR_BGR2RGB)))
 
-    out_dir = Path("calibration")
-    out_dir.mkdir(exist_ok=True)
+    from occ.paths import CALIB_ACTIVE
+    out_dir = CALIB_ACTIVE
+    out_dir.mkdir(parents=True, exist_ok=True)
     pdf_path = out_dir / "big_charuco_tiled.pdf"
     pages[0].save(pdf_path, "PDF", resolution=DPI, save_all=True,
                   append_images=pages[1:])

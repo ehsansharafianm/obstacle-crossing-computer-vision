@@ -17,8 +17,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 from occ.calibration import Intrinsics  # noqa: E402
 from occ.stereo import StereoExtrinsics  # noqa: E402
 from occ.reconstruct import triangulate_stereo  # noqa: E402
+from occ.paths import CALIB_ACTIVE  # noqa: E402
 
-GT = json.loads(Path("calibration/rod_markers.json").read_text())["known_distances_mm"]
+GT = json.loads((CALIB_ACTIVE / "rod_markers.json").read_text())["known_distances_mm"]
 KNOWN = sorted(GT.values())  # [124.65, 146.64, 205.0, 242.4]
 
 
@@ -103,9 +104,9 @@ def match_and_triangulate(reds1, teals1, reds2, teals2, intr1, intr2, F, R, T):
 
 
 def main():
-    intr1 = Intrinsics.load("calibration/intrinsics_cam1.npz")
-    intr2 = Intrinsics.load("calibration/intrinsics_cam2.npz")
-    extr = StereoExtrinsics.load("calibration/stereo_extrinsics.npz")
+    intr1 = Intrinsics.load(CALIB_ACTIVE / "intrinsics_cam1.npz")
+    intr2 = Intrinsics.load(CALIB_ACTIVE / "intrinsics_cam2.npz")
+    extr = StereoExtrinsics.load(CALIB_ACTIVE / "stereo_extrinsics.npz")
     R, T = extr.R, extr.t.reshape(3, 1)
     E = np.cross(np.eye(3), T.ravel()) @ R
     F = np.linalg.inv(intr2.camera_matrix).T @ E @ np.linalg.inv(intr1.camera_matrix)

@@ -21,8 +21,8 @@ from occ.tracking import detect_two_feet_ground  # noqa: E402
 from occ.filtering import clean_trajectory  # noqa: E402
 from occ.worldframe import WorldTransform  # noqa: E402
 from occ.audiosync import clap_offset, clap_envelope  # noqa: E402
+from occ.paths import session_videos, session_results, CALIB_ACTIVE  # noqa: E402
 
-EXP_ROOT = Path("sessions")
 VIDEO_EXTS = (".MOV", ".mov", ".MP4", ".mp4", ".avi", ".AVI")
 # Recording-mode factor, auto-detected per session from the clip's reported fps:
 #   NORMAL 60 fps  -> SLOWMO=1 (file time == real time, audio at real speed)
@@ -196,12 +196,13 @@ def main():
         raise SystemExit("usage: build_multi_trajectory.py <test id>")
     raw = sys.argv[1]
     tid = f"test{int(raw):02d}" if str(raw).isdigit() else raw
-    folder = EXP_ROOT / tid
+    video_dir = session_videos(tid)                 # raw cam clips (inputs)
+    folder = session_results(tid)                    # generated outputs
     folder.mkdir(parents=True, exist_ok=True)
-    cam1 = find_cam_video(folder, "cam1")
-    cam2 = find_cam_video(folder, "cam2")
+    cam1 = find_cam_video(video_dir, "cam1")
+    cam2 = find_cam_video(video_dir, "cam2")
     if cam1 is None or cam2 is None:
-        raise SystemExit(f"[{tid}] need cam1/cam2 clips in {folder.resolve()}")
+        raise SystemExit(f"[{tid}] need cam1/cam2 clips in {video_dir.resolve()}")
 
     t_start = time.perf_counter()
     wall_start = datetime.now()
@@ -216,20 +217,20 @@ def main():
     SLOWMO = detect_slowmo(cam1)
     say(f"Recording mode: {'normal (~60 fps)' if SLOWMO == 1 else 'slow-mo 1/4 (120 fps real)'}")
 
-    intr1 = Intrinsics.load("calibration/intrinsics_cam1.npz")
-    intr2 = Intrinsics.load("calibration/intrinsics_cam2.npz")
-    extr = StereoExtrinsics.load("calibration/stereo_extrinsics.npz")
+    intr1 = Intrinsics.load(CALIB_ACTIVE / "intrinsics_cam1.npz")
+    intr2 = Intrinsics.load(CALIB_ACTIVE / "intrinsics_cam2.npz")
+    extr = StereoExtrinsics.load(CALIB_ACTIVE / "stereo_extrinsics.npz")
     R, T = extr.R, extr.t.reshape(3, 1)
 
     # Projection matrices in cam1's normalised frame (P = [R|t], no K).
     P1n = np.hstack([np.eye(3), np.zeros((3, 1))])
     P2n = np.hstack([extr.R, extr.t.reshape(3, 1)])
     # Optional 3rd camera: compose cam3->cam1 through the cam2<->cam3 calibration.
-    cam3 = find_cam_video(folder, "cam3")
+    cam3 = find_cam_video(video_dir, "cam3")
     intr3 = P3n = None
-    c23_path = Path("calibration/stereo_extrinsics_cam2cam3.npz")
+    c23_path = CALIB_ACTIVE / "stereo_extrinsics_cam2cam3.npz"
     if cam3 is not None and c23_path.exists():
-        intr3 = Intrinsics.load("calibration/intrinsics_cam3.npz")
+        intr3 = Intrinsics.load(CALIB_ACTIVE / "intrinsics_cam3.npz")
         e23 = StereoExtrinsics.load(c23_path)            # cam3 relative to cam2
         R31 = e23.R @ extr.R                             # X_c3 = R_b(R_a X + t_a) + t_b
         t31 = (e23.R @ extr.t.reshape(3, 1)) + e23.t.reshape(3, 1)
@@ -447,7 +448,7 @@ def main():
             cams_audio.append(("cam3", ev3, off3))
         audio_df = write_audiosync(folder, tid, cams_audio, SLOWMO, say)
 
-    W_path = Path("calibration/world_transform.npz")
+    W_path = CALIB_ACTIVE / "world_transform.npz"
     W = WorldTransform.load(W_path) if W_path.exists() else None
 
     # Camera list for n-view reconstruction: (ts, detections, intrinsics, proj, offset).
@@ -624,7 +625,7 @@ def main():
     say("Aligned review clips (start 2 s before the clap) -> synced_videos/:")
     try:
         from sync_cut import cut_session
-        cut_session(folder, pre=2.0, log=say)
+        cut_session(video_dir, folder, pre=2.0, log=say)
     except Exception as e:
         say(f"  sync_cut skipped: {e}")
 

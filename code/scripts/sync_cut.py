@@ -19,8 +19,8 @@ import cv2
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 from occ.audiosync import clap_envelope, _FF  # noqa: E402
+from occ.paths import session_videos, session_results  # noqa: E402
 
-EXP_ROOT = Path("sessions")
 VIDEO_EXTS = (".MOV", ".mov", ".MP4", ".mp4", ".avi", ".AVI")
 OUT_SUBDIR = "synced_videos"
 
@@ -38,17 +38,17 @@ def find_cam(folder, cam):
     return hits[0] if hits else None
 
 
-def cut_session(folder, pre=2.0, crf=20, log=print, force=False):
-    """Write clap-aligned review clips for a session into folder/synced_videos/.
-    Reads only the ORIGINAL clips; never touched by the analysis. Skips a camera
-    whose synced clip already exists (delete it or pass force=True to redo)."""
+def cut_session(video_dir, out_root, pre=2.0, crf=20, log=print, force=False):
+    """Write clap-aligned review clips into out_root/synced_videos/, reading the
+    ORIGINAL clips from video_dir. The originals are never touched by the analysis.
+    Skips a camera whose synced clip already exists (delete it or force=True)."""
     if _FF is None:
         log("  sync_cut: ffmpeg not available -- skipped"); return 0
-    out_dir = Path(folder) / OUT_SUBDIR
+    out_dir = Path(out_root) / OUT_SUBDIR
     out_dir.mkdir(parents=True, exist_ok=True)
     done = 0
     for cam in ("cam1", "cam2", "cam3"):
-        v = find_cam(Path(folder), cam)
+        v = find_cam(Path(video_dir), cam)
         if v is None:
             continue
         out = out_dir / f"{cam}_synced.mp4"
@@ -78,11 +78,11 @@ def main():
     raw = sys.argv[1]
     tid = f"test{int(raw):02d}" if str(raw).isdigit() else raw
     pre = float(sys.argv[2]) if len(sys.argv) > 2 else 2.0
-    folder = EXP_ROOT / tid
-    if not folder.is_dir():
-        raise SystemExit(f"no session folder: {folder.resolve()}")
+    video_dir = session_videos(tid)
+    if not video_dir.is_dir():
+        raise SystemExit(f"no session videos: {video_dir.resolve()}")
     print(f"[{tid}] aligning clips to start {pre:.1f}s before the clap")
-    cut_session(folder, pre=pre, force=True)       # explicit run -> always redo
+    cut_session(video_dir, session_results(tid), pre=pre, force=True)  # explicit run -> redo
 
 
 if __name__ == "__main__":

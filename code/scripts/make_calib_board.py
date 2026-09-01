@@ -20,7 +20,8 @@ from occ.calibration import BoardSpec, generate_board_image, make_detector, dete
 
 def main() -> None:
     spec = BoardSpec()  # 8x6, 30mm squares, 23mm markers, DICT_5X5_100
-    out_dir = Path(__file__).resolve().parents[1] / "calibration"
+    from occ.paths import CALIB_ACTIVE
+    out_dir = CALIB_ACTIVE
     out_dir.mkdir(parents=True, exist_ok=True)
     out_path = out_dir / "charuco_board.png"
 

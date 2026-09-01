@@ -19,6 +19,7 @@ import numpy as np
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 from occ.calibration import BoardSpec, Intrinsics  # noqa: E402
 from occ.stereo import StereoExtrinsics  # noqa: E402
+from occ.paths import CALIB_ACTIVE  # noqa: E402
 from run_stereo import scan  # noqa: E402
 
 
@@ -52,10 +53,10 @@ def poses(video, spec, K, dist):
 
 
 def solve_extrinsics(cam1_video, cam2_video,
-                     board_json="calibration/board_measured_large.json",
-                     intr1_path="calibration/intrinsics_cam1.npz",
-                     intr2_path="calibration/intrinsics_cam2.npz",
-                     out="calibration/stereo_extrinsics.npz",
+                     board_json=str(CALIB_ACTIVE / "board_measured_large.json"),
+                     intr1_path=str(CALIB_ACTIVE / "intrinsics_cam1.npz"),
+                     intr2_path=str(CALIB_ACTIVE / "intrinsics_cam2.npz"),
+                     out=str(CALIB_ACTIVE / "stereo_extrinsics.npz"),
                      rot_tol_deg=4.0, t_tol=0.15, max_holds=40, verbose=True):
     """Solve stereo extrinsics from two board-at-poses clips. Returns
     (StereoExtrinsics, rms_px, n_pairs).

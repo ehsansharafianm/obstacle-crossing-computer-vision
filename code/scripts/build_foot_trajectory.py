@@ -23,7 +23,7 @@ from occ.worldframe import WorldTransform  # noqa: E402
 from occ.audiosync import clap_offset  # noqa: E402
 
 
-EXP_ROOT = Path("sessions")            # test/recording sessions: sessions/testNN/
+from occ.paths import session_videos, session_results, CALIB_ACTIVE  # noqa: E402
 VIDEO_EXTS = (".MOV", ".mov", ".MP4", ".mp4", ".avi", ".AVI")
 
 
@@ -103,14 +103,15 @@ def main():
 
     # --- Resolve this test's folder + input videos -----------------------------
     test_id = resolve_test_id(args.test)
-    folder = EXP_ROOT / test_id
+    video_dir = session_videos(test_id)              # raw cam clips (inputs)
+    folder = session_results(test_id)                # generated outputs
     folder.mkdir(parents=True, exist_ok=True)
-    cam1 = Path(args.cam1) if args.cam1 else find_cam_video(folder, "cam1")
-    cam2 = Path(args.cam2) if args.cam2 else find_cam_video(folder, "cam2")
+    cam1 = Path(args.cam1) if args.cam1 else find_cam_video(video_dir, "cam1")
+    cam2 = Path(args.cam2) if args.cam2 else find_cam_video(video_dir, "cam2")
     if cam1 is None or cam2 is None:
         raise SystemExit(
-            f"\n[{test_id}] needs two videos. I created the folder:\n"
-            f"    {folder.resolve()}\n"
+            f"\n[{test_id}] needs two videos in:\n"
+            f"    {video_dir.resolve()}\n"
             f"  -> copy your two clips into it named cam1 and cam2 "
             f"(e.g. cam1.MOV, cam2.MOV), then re-run:\n"
             f"    python scripts/build_foot_trajectory.py {test_id}\n")
@@ -124,9 +125,9 @@ def main():
 
     say(f"[{test_id}]  cam1={cam1.name}  cam2={cam2.name}")
 
-    intr1 = Intrinsics.load("calibration/intrinsics_cam1.npz")
-    intr2 = Intrinsics.load("calibration/intrinsics_cam2.npz")
-    extr = StereoExtrinsics.load("calibration/stereo_extrinsics.npz")
+    intr1 = Intrinsics.load(CALIB_ACTIVE / "intrinsics_cam1.npz")
+    intr2 = Intrinsics.load(CALIB_ACTIVE / "intrinsics_cam2.npz")
+    extr = StereoExtrinsics.load(CALIB_ACTIVE / "stereo_extrinsics.npz")
     R, T = extr.R, extr.t.reshape(3, 1)
 
     def tri(p1, p2):
@@ -199,7 +200,7 @@ def main():
     say(f"Rigid-pair filter: kept toe-heel {med*1000:.0f} mm, dropped {int(bad.sum())} outlier frames")
 
     # World frame (Z = height above floor) if the transform has been computed.
-    wt_path = Path("calibration/world_transform.npz")
+    wt_path = CALIB_ACTIVE / "world_transform.npz"
     if wt_path.exists():
         W = WorldTransform.load(wt_path)
         toe = W.apply(toe); heel = W.apply(heel)

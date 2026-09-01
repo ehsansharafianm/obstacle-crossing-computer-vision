@@ -19,6 +19,7 @@ import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 from occ.calibration import BoardSpec, make_detector, detect_board  # noqa: E402
+from occ.paths import CALIB_ACTIVE  # noqa: E402
 
 
 def sharpness(gray) -> float:
@@ -39,7 +40,7 @@ def main() -> None:
                     help="min board-centroid move (frac of width) vs last kept")
     ap.add_argument("--candidates", type=int, default=2500,
                     help="how many frames across the video to inspect for the board")
-    ap.add_argument("--board-json", default="calibration/board_measured.json")
+    ap.add_argument("--board-json", default=str(CALIB_ACTIVE / "board_measured.json"))
     args = ap.parse_args()
 
     spec = (BoardSpec.from_measured_json(args.board_json)

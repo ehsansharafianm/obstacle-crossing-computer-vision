@@ -3,7 +3,7 @@ function plot_trajectory(csvfile)
 % styled for presentation (Arial, bold labels, thick lines/box), with toggles.
 %
 %   plot_trajectory                 % opens a file picker
-%   plot_trajectory('test13')       % -> code/sessions/test13/test13_trajectory.xlsx
+%   plot_trajectory('test13')       % -> results/sessions/test13/test13_trajectory.xlsx
 %   plot_trajectory('foot_trajectory.csv')      % explicit file / full path
 %
 % Reads the marker trajectories (a .xlsx "markers" sheet, or a plain .csv):
@@ -38,12 +38,12 @@ function plot_trajectory(csvfile)
     elseif exist(csvfile, 'file')
         datafile = csvfile;                                   % explicit path given
     else
-        % A bare test id (e.g. 'test13') -> code/sessions/<id>/<id>_trajectory.xlsx
+        % A bare test id (e.g. 'test13') -> results/sessions/<id>/<id>_trajectory.xlsx
         % (falls back to .csv), resolved relative to this .m file.
         id   = csvfile;
         root = fileparts(fileparts(mfilename('fullpath')));   % repo root
-        candx = fullfile(root, 'code', 'sessions', id, [id '_trajectory.xlsx']);
-        candc = fullfile(root, 'code', 'sessions', id, [id '_trajectory.csv']);
+        candx = fullfile(root, 'results', 'sessions', id, [id '_trajectory.xlsx']);
+        candc = fullfile(root, 'results', 'sessions', id, [id '_trajectory.csv']);
         if exist(candx, 'file'),     datafile = candx;
         elseif exist(candc, 'file'), datafile = candc;
         else,  error('No trajectory file for "%s". Looked for:\n  %s\n  %s', id, candx, candc);

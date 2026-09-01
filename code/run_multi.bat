@@ -8,8 +8,8 @@ REM    * Double-click this file  -> it asks for the session number, you type 15.
 REM    * From a terminal:  run_multi 15      (or:  run_multi test15)
 REM
 REM  A bare number like 15 becomes test15. Put the three clips in
-REM  sessions\test15\ first, named cam1.mp4, cam2.mp4, cam3.mp4.
-REM  Outputs (xlsx, plots, run.txt, synced_videos) land in that folder.
+REM  videos\sessions\test15\ first, named cam1.mp4, cam2.mp4, cam3.mp4.
+REM  Outputs (xlsx, plots, run.txt, synced_videos) land in results\sessions\test15\.
 REM ---------------------------------------------------------------------------
 setlocal
 cd /d "%~dp0"

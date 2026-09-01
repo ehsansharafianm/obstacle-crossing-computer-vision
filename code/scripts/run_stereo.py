@@ -22,6 +22,7 @@ import numpy as np
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 from occ.calibration import BoardSpec, Intrinsics, make_detector, detect_board  # noqa: E402
 from occ.stereo import StereoExtrinsics  # noqa: E402
+from occ.paths import CALIB_ACTIVE  # noqa: E402
 
 
 def scan(video, spec, sample_fps=20.0, min_corners=8):
@@ -66,9 +67,9 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("video1")
     ap.add_argument("video2")
-    ap.add_argument("--board", default="calibration/board_measured_large.json")
-    ap.add_argument("--intr1", default="calibration/intrinsics_cam1.npz")
-    ap.add_argument("--intr2", default="calibration/intrinsics_cam2.npz")
+    ap.add_argument("--board", default=str(CALIB_ACTIVE / "board_measured_large.json"))
+    ap.add_argument("--intr1", default=str(CALIB_ACTIVE / "intrinsics_cam1.npz"))
+    ap.add_argument("--intr2", default=str(CALIB_ACTIVE / "intrinsics_cam2.npz"))
     ap.add_argument("--max-pairs", type=int, default=25)
     ap.add_argument("--tol", type=float, default=0.08, help="pair time tolerance (s)")
     args = ap.parse_args()
@@ -170,7 +171,7 @@ def main():
         intr1.image_size, flags=cv2.CALIB_FIX_INTRINSIC)
 
     extr = StereoExtrinsics(R, T, float(rms), len(obj_pts))
-    out = Path("calibration/stereo_extrinsics.npz")
+    out = CALIB_ACTIVE / "stereo_extrinsics.npz"
     extr.save(out)
     print(f"\n=== STEREO RESULT ===")
     print(f"  stereo RMS reprojection error = {rms:.4f} px")

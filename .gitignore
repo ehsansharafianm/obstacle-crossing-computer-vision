@@ -14,13 +14,21 @@ __pycache__/
 # --- Node (slide-deck builder) --------------------------------------------
 node_modules/
 
+# --- Raw video tree (heavy; regenerable results live in results/) ----------
+# All raw session + calibration clips live here; never versioned.
+/videos/
+
 # --- Raw inputs & regenerable intermediates (large; not versioned) ---------
 # raw clips + extracted calibration frame dumps
 code/data/
-# old flat scratch results (superseded by sessions/)
+# old flat scratch results (superseded by the top-level results/ tree)
 code/results/
 
-# --- Keep per-session RESULTS (small) but never the raw videos -------------
-# CSV / PNG / run.txt under sessions/ and calibration/ are intentionally kept.
-# ...but not the regenerable 2D-detection caches (rebuilt from the clips).
+# --- Keep generated RESULTS (small) but never videos or caches -------------
+# Under results/: xlsx / png / run.txt / .npz (extrinsics, world, intrinsics)
+# are intentionally kept. Synced/animation .mp4 there are ignored by extension
+# above; the regenerable 2D-detection caches are ignored here.
 *_track_cache.npz
+
+# --- Presentations (large binaries; keep local) ----------------------------
+/presentations/

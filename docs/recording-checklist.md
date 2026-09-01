@@ -25,7 +25,7 @@ See [[2026-08-29]] for the story and [[next-steps]] for the roadmap.
       The gap is fine; the pipeline finds each static window.
 - [ ] Walk the crossings **along Y** (obstacle bar along X), per the calibrated layout.
 
-## After processing — sanity-check the run log (`sessions/<id>/<id>_run.txt`)
+## After processing — sanity-check the run log (`results/sessions/<id>/<id>_run.txt`)
 A good session shows all of these. If any is off, the session is suspect — reshoot rather
 than trust it.
 - [ ] **`[clap agrees]` on cam2 AND cam3** (not `[clap OFF]`).

@@ -1,0 +1,102 @@
+Test: test15
+
+Run started: 2026-08-31 10:22:10
+Recording mode: normal (~60 fps)
+[test15] cam1.mp4 (cam1): tracking   5%  (~9.1 min left)
+[test15] cam1.mp4 (cam1): tracking  10%  (~8.9 min left)
+[test15] cam1.mp4 (cam1): tracking  15%  (~8.9 min left)
+[test15] cam1.mp4 (cam1): tracking  20%  (~8.9 min left)
+[test15] cam1.mp4 (cam1): tracking  25%  (~8.1 min left)
+[test15] cam1.mp4 (cam1): tracking  30%  (~7.7 min left)
+[test15] cam1.mp4 (cam1): tracking  35%  (~7.2 min left)
+[test15] cam1.mp4 (cam1): tracking  40%  (~6.8 min left)
+[test15] cam1.mp4 (cam1): tracking  45%  (~6.1 min left)
+[test15] cam1.mp4 (cam1): tracking  50%  (~5.6 min left)
+[test15] cam1.mp4 (cam1): tracking  55%  (~5.0 min left)
+[test15] cam1.mp4 (cam1): tracking  60%  (~4.4 min left)
+[test15] cam1.mp4 (cam1): tracking  65%  (~3.9 min left)
+[test15] cam1.mp4 (cam1): tracking  70%  (~3.3 min left)
+[test15] cam1.mp4 (cam1): tracking  75%  (~2.8 min left)
+[test15] cam1.mp4 (cam1): tracking  80%  (~2.2 min left)
+[test15] cam1.mp4 (cam1): tracking  85%  (~1.7 min left)
+[test15] cam1.mp4 (cam1): tracking  90%  (~1.1 min left)
+[test15] cam1.mp4 (cam1): tracking  95%  (~0.6 min left)
+[test15] cam1.mp4 (cam1): tracking 100%  (~0.0 min left)
+[test15] cam1.mp4 (cam1): tracked in 673.7s
+[test15] cam2.mp4 (cam2): tracking   5%  (~7.9 min left)
+[test15] cam2.mp4 (cam2): tracking  10%  (~7.5 min left)
+[test15] cam2.mp4 (cam2): tracking  15%  (~7.2 min left)
+[test15] cam2.mp4 (cam2): tracking  20%  (~6.9 min left)
+[test15] cam2.mp4 (cam2): tracking  25%  (~6.6 min left)
+[test15] cam2.mp4 (cam2): tracking  30%  (~6.3 min left)
+[test15] cam2.mp4 (cam2): tracking  35%  (~5.9 min left)
+[test15] cam2.mp4 (cam2): tracking  40%  (~5.6 min left)
+[test15] cam2.mp4 (cam2): tracking  45%  (~5.2 min left)
+[test15] cam2.mp4 (cam2): tracking  50%  (~4.7 min left)
+[test15] cam2.mp4 (cam2): tracking  55%  (~4.3 min left)
+[test15] cam2.mp4 (cam2): tracking  60%  (~3.8 min left)
+[test15] cam2.mp4 (cam2): tracking  65%  (~3.4 min left)
+[test15] cam2.mp4 (cam2): tracking  70%  (~2.9 min left)
+[test15] cam2.mp4 (cam2): tracking  75%  (~2.4 min left)
+[test15] cam2.mp4 (cam2): tracking  80%  (~1.9 min left)
+[test15] cam2.mp4 (cam2): tracking  85%  (~1.5 min left)
+[test15] cam2.mp4 (cam2): tracking  90%  (~1.0 min left)
+[test15] cam2.mp4 (cam2): tracking  95%  (~0.5 min left)
+[test15] cam2.mp4 (cam2): tracking 100%  (~0.0 min left)
+[test15] cam2.mp4 (cam2): tracked in 582.8s
+[test15] cam3.mp4 (cam3): tracking   5%  (~7.6 min left)
+[test15] cam3.mp4 (cam3): tracking  10%  (~7.5 min left)
+[test15] cam3.mp4 (cam3): tracking  15%  (~7.2 min left)
+[test15] cam3.mp4 (cam3): tracking  20%  (~6.9 min left)
+[test15] cam3.mp4 (cam3): tracking  25%  (~6.6 min left)
+[test15] cam3.mp4 (cam3): tracking  30%  (~6.7 min left)
+[test15] cam3.mp4 (cam3): tracking  35%  (~6.7 min left)
+[test15] cam3.mp4 (cam3): tracking  40%  (~6.2 min left)
+[test15] cam3.mp4 (cam3): tracking  45%  (~5.7 min left)
+[test15] cam3.mp4 (cam3): tracking  50%  (~5.1 min left)
+[test15] cam3.mp4 (cam3): tracking  55%  (~4.5 min left)
+[test15] cam3.mp4 (cam3): tracking  60%  (~4.1 min left)
+[test15] cam3.mp4 (cam3): tracking  65%  (~3.6 min left)
+[test15] cam3.mp4 (cam3): tracking  70%  (~3.0 min left)
+[test15] cam3.mp4 (cam3): tracking  75%  (~2.5 min left)
+[test15] cam3.mp4 (cam3): tracking  80%  (~2.0 min left)
+[test15] cam3.mp4 (cam3): tracking  85%  (~1.5 min left)
+[test15] cam3.mp4 (cam3): tracking  90%  (~1.0 min left)
+[test15] cam3.mp4 (cam3): tracking  95%  (~0.5 min left)
+[test15] cam3.mp4 (cam3): tracking 100%  (~0.0 min left)
+[test15] cam3.mp4 (cam3): tracked in 597.0s
+[test15] 3-camera mode
+  L_toe   cam1 41%  cam2 17%  cam3 23%
+  L_heel  cam1 41%  cam2 17%  cam3 23%
+  R_toe   cam1 42%  cam2 20%  cam3 26%
+  R_heel  cam1 42%  cam2 20%  cam3 26%
+Clap: cam1 @ 10.924s (x11), cam2 @ 6.071s (x6)  -> cam2 +4.853s
+Motion candidate: cam2 +4.433s
+-> cam2 sync: +4.793s = cam1   (toe-heel scatter 12 mm)  [clap agrees]
+Clap: cam3 @ 3.383s (x7)  -> cam3 +7.541s
+-> cam3 sync: +7.520s = cam1   (cam2+cam3 scatter 18 mm)  [clap agrees]
+Audio-sync figure -> test15_audiosync.png  (3 cameras, clap jumps + alignment)
+Reconstructing from 3 cameras (marker needs >=2 to get a 3D point)
+  reconstructed points: 5966 from cam1+cam2 (wide baseline), 3144 gap-filled with cam3
+  L foot: toe-heel 277 mm, dropped 164 outliers
+  R foot: toe-heel 275 mm, dropped 36 outliers
+Obstacle markers reconstructed in 6854/10046 frames (523 frames rejected for high reprojection error)
+Output: world frame (Z = height above floor)
+  L_toe    23% reconstructed
+  L_heel   23% reconstructed
+  R_toe    22% reconstructed
+  R_heel   22% reconstructed
+  obstacle1 67% reconstructed
+  obstacle2 66% reconstructed
+Time origin: t=0 at the clap (cam1 @ 10.92s in); kept 9396 post-clap frames, dropped 650 pre-clap
+
+Saved test15_trajectory.xlsx (markers sheet incl. obstacle1/obstacle2 + audio), test15_trajectory.png
+Aligned review clips (start 2 s before the clap) -> synced_videos/:
+  cam1: clap @ 10.92s -> synced_videos/cam1_synced.mp4
+  cam2: clap @ 6.07s -> synced_videos/cam2_synced.mp4
+  cam3: clap @ 3.38s -> synced_videos/cam3_synced.mp4
+  3 aligned review clip(s) -> sessions\test15\synced_videos
+
+Run started:  2026-08-31 10:22:10
+Run finished: 2026-08-31 10:56:17
+Total processing time: 34 min 6.3 s  (2046.3 s)

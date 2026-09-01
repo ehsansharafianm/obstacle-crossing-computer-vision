@@ -12,6 +12,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 from occ.calibration import BoardSpec, calibrate_intrinsics  # noqa: E402
+from occ.paths import CALIB_ACTIVE  # noqa: E402
 
 IMG_EXT = (".png", ".jpg", ".jpeg", ".bmp", ".tif", ".tiff")
 
@@ -20,7 +21,7 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("images_dir")
     ap.add_argument("name", help="camera name, e.g. cam1")
-    ap.add_argument("--board-json", default="calibration/board_measured.json")
+    ap.add_argument("--board-json", default=str(CALIB_ACTIVE / "board_measured.json"))
     args = ap.parse_args()
 
     spec = (BoardSpec.from_measured_json(args.board_json)
@@ -36,7 +37,7 @@ def main() -> None:
 
     intr = calibrate_intrinsics(paths, spec)
 
-    out = Path("calibration") / f"intrinsics_{args.name}.npz"
+    out = CALIB_ACTIVE / f"intrinsics_{args.name}.npz"
     intr.save(out)
     fx, fy = intr.camera_matrix[0, 0], intr.camera_matrix[1, 1]
     cx, cy = intr.camera_matrix[0, 2], intr.camera_matrix[1, 2]

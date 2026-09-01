@@ -12,14 +12,16 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 from occ.calibration import BoardSpec, calibrate_intrinsics  # noqa: E402
+from occ.paths import CALIB_ACTIVE  # noqa: E402
 
 IMG_EXT = (".png", ".jpg", ".jpeg")
 
 
 def main() -> None:
     folder = sys.argv[1]
-    spec = (BoardSpec.from_measured_json("calibration/board_measured.json")
-            if Path("calibration/board_measured.json").exists() else BoardSpec())
+    _board = CALIB_ACTIVE / "board_measured.json"
+    spec = (BoardSpec.from_measured_json(str(_board))
+            if _board.exists() else BoardSpec())
     paths = sorted(p for p in Path(folder).iterdir() if p.suffix.lower() in IMG_EXT)
     even, odd = paths[::2], paths[1::2]
     print(f"{folder}: {len(paths)} frames -> even {len(even)}, odd {len(odd)}")
