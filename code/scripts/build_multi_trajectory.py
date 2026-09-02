@@ -622,10 +622,10 @@ def main():
         + (" + audio" if audio_df is not None else "") + f"), {tid}_trajectory.png")
 
     # --- Aligned review clips (for MANUAL viewing only; analysis used the originals)
-    say("Aligned review clips (start 2 s before the clap) -> synced_videos/:")
+    say("Aligned review clips (start AT the clap, t=0) -> synced_videos/:")
     try:
         from sync_cut import cut_session
-        cut_session(video_dir, folder, pre=2.0, log=say)
+        cut_session(video_dir, folder, pre=0.0, log=say)
     except Exception as e:
         say(f"  sync_cut skipped: {e}")
 

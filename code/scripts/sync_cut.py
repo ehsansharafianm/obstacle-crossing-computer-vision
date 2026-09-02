@@ -3,13 +3,14 @@ CLAP -- producing time-aligned videos you can review side-by-side (or drop into 
 presentation). Uses the same clap detector as the trajectory pipeline.
 
 These clips are ONLY for manual/visual review -- the 3D analysis always runs on the
-ORIGINAL files. The aligned clips are written to  sessions/<id>/synced_videos/  and
-each begins `pre` seconds before the clap, so the clap lands at the same position in
-all of them and they play in lock-step.
+ORIGINAL files. The aligned clips are written to  results/sessions/<id>/synced_videos/
+and each begins `pre` seconds before the clap. The DEFAULT is pre=0, so every clip
+starts exactly AT the clap -- the same t=0 the trajectory output uses, so the videos
+line up frame-for-frame with the trajectory results.
 
 Runs automatically at the end of build_multi_trajectory; can also be run alone:
-    python scripts/sync_cut.py 10          # 2 s before the clap (default)
-    python scripts/sync_cut.py 10 1.5      # 1.5 s before the clap
+    python scripts/sync_cut.py 10          # start AT the clap (default, t=0)
+    python scripts/sync_cut.py 10 1.5      # start 1.5 s BEFORE the clap
 """
 import subprocess
 import sys
@@ -77,11 +78,12 @@ def main():
         raise SystemExit("usage: sync_cut.py <test id> [seconds-before-clap]")
     raw = sys.argv[1]
     tid = f"test{int(raw):02d}" if str(raw).isdigit() else raw
-    pre = float(sys.argv[2]) if len(sys.argv) > 2 else 2.0
+    pre = float(sys.argv[2]) if len(sys.argv) > 2 else 0.0
     video_dir = session_videos(tid)
     if not video_dir.is_dir():
         raise SystemExit(f"no session videos: {video_dir.resolve()}")
-    print(f"[{tid}] aligning clips to start {pre:.1f}s before the clap")
+    where = "AT the clap (t=0)" if pre == 0 else f"{pre:.1f}s before the clap"
+    print(f"[{tid}] aligning clips to start {where}")
     cut_session(video_dir, session_results(tid), pre=pre, force=True)  # explicit run -> redo
 
 
