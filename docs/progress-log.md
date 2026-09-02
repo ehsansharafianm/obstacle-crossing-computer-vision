@@ -4,6 +4,12 @@ What we've built and proven, in order. See [[code-structure]] for the code,
 [[next-steps]] for what's left, [[automated-pipeline]] for the system plan.
 
 ## Headline achievements
+- **First accuracy validation — rigid wand** (2026-09-02, test21): precision **~2–6 mm
+  std** (sub-2 %), but a systematic **~6 % scale underestimate** → calibration board
+  square size. Precise now; accurate once the board size is corrected. See [[2026-09-02]].
+- **Repo reorg + robustness pass** (2026-09-02): split **videos/ (raw) + results/
+  (generated)**; hardened detection against scene/wardrobe colour clashes (cone→obstacle,
+  shirt→R_toe, shorts→R_heel), all found via real sessions test18–20.
 - **Multi-height obstacle capture works** (2026-08-29). test14 (4 configs): obstacle
   reconstructed in **75 %** of frames, all four windows resolved with sub-mm scatter, feet
   **15 / 13 mm** toe-heel std — after fixing orange-red marker detection (hue + round-blob
@@ -125,6 +131,29 @@ What we've built and proven, in order. See [[code-structure]] for the code,
 - **Note for the 6-height protocol:** detection works, but the orange-red balls *share* the
   scene's hue (skin + poles) — the shape gate does the heavy lifting. A marker colour absent
   from the room (e.g. blue; feet already use purple/green/teal/pink) would make it bulletproof.
+
+### 13. Repo reorg + real-session robustness  ✅ (2026-09-02, [[2026-09-02]])
+- **Layout split**: raw video → `videos/{sessions,calibration}/`; everything generated →
+  `results/{sessions, calibration/active, calibration/<id>}/`. `occ/paths.py` anchors all
+  paths to the repo root. Scripts, `.bat`s, MATLAB viewers, `.gitignore`, docs updated.
+- **calib16** (gait mat on floor): floor step fixed with a **multi-scale board detector**
+  (upscales a small/distant floor board). **calib17** (cameras moved): floor 0.47 mm.
+- **Detection hardened against scene/wardrobe colour clashes**, each found in a real session:
+  obstacle **plausibility gate** (kills triangulation blow-ups); obstacle **best-pair matcher**
+  (cam1's orange **cone** false-red → obstacle 2 %→51 %); **teal range tightened** (grey-green
+  **shorts** → R_heel offset 329→111 mm, std 37→10 mm); patterned **shirt** → neutral clothing.
+- **Synced clips start AT the clap**; `plot_trajectory` marker-matched colours + toggles on
+  both figures; **live progress %+ETA**.
+
+### 14. First accuracy validation — rigid wand  ✅ (2026-09-02, test21)
+- Four foot markers on a rigid T-wand moved through the volume; distances vs known geometry.
+- **Precision excellent (~2–6 mm std, ~1–2 %)** — highly repeatable across the space.
+- **Accuracy: systematic ~6 % underestimate**, error proportional to distance = a **scale
+  error** (mean ratio ≈ 0.94). Most likely the **calibration board square size**
+  (62.9 mm assumed; ~66–67 mm real gives ≈0.944). Report + plots in
+  `results/validation/test21/`; new tool `matlab/plot_validation.m`.
+- **Action:** re-measure board squares, update `board_measured_large.json`, re-run
+  `build_calibration 17`, re-shoot the wand to confirm.
 
 ## Deliverables produced
 - **MATLAB viewer** `matlab/plot_trajectory.m` — 3D + X/Y/Z-vs-time, per-marker toggles,

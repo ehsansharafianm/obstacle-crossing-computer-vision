@@ -1,0 +1,42 @@
+Test: test19
+
+Run started: 2026-09-02 11:47:08
+Recording mode: normal (~60 fps)
+[test19] cam1.mp4 (cam1): tracked in 368.2s
+[test19] cam2.mp4 (cam2): tracked in 334.6s
+[test19] cam3.mp4 (cam3): tracked in 340.2s
+[test19] 3-camera mode
+  L_toe   cam1 36%  cam2 31%  cam3 32%
+  L_heel  cam1 36%  cam2 31%  cam3 32%
+  R_toe   cam1 39%  cam2 33%  cam3 43%
+  R_heel  cam1 39%  cam2 33%  cam3 43%
+Clap: cam1 @ 9.387s (x14), cam2 @ 5.377s (x9)  -> cam2 +4.010s
+Motion candidate: cam2 +3.750s
+-> cam2 sync: +4.010s = cam1   (toe-heel scatter 26 mm)  [clap agrees]
+Clap: cam3 @ 3.178s (x11)  -> cam3 +6.209s
+-> cam3 sync: +6.189s = cam1   (cam2+cam3 scatter 24 mm)  [clap agrees]
+Audio-sync figure -> test19_audiosync.png  (3 cameras, clap jumps + alignment)
+Reconstructing from 3 cameras (marker needs >=2 to get a 3D point)
+  reconstructed points: 6358 from cam1+cam2 (wide baseline), 1824 gap-filled with cam3
+  L foot: toe-heel 280 mm, dropped 373 outliers
+  R foot: toe-heel 276 mm, dropped 279 outliers
+Obstacle markers reconstructed in 3096/5608 frames (497 frames rejected for high reprojection error)
+Output: world frame (Z = height above floor)
+  L_toe    33% reconstructed
+  L_heel   33% reconstructed
+  R_toe    35% reconstructed
+  R_heel   34% reconstructed
+  obstacle1 54% reconstructed
+  obstacle2 54% reconstructed
+Time origin: t=0 at the clap (cam1 @ 9.39s in); kept 5049 post-clap frames, dropped 559 pre-clap
+
+Saved test19_trajectory.xlsx (markers sheet incl. obstacle1/obstacle2 + audio), test19_trajectory.png
+Aligned review clips (start AT the clap, t=0) -> synced_videos/:
+  cam1: clap @ 9.39s -> synced_videos/cam1_synced.mp4
+  cam2: clap @ 5.38s -> synced_videos/cam2_synced.mp4
+  cam3: clap @ 3.18s -> synced_videos/cam3_synced.mp4
+  3 aligned review clip(s) -> C:\Users\BiomechanicsLab2\Documents\obstacle-crossing-computer-vision\results\sessions\test19\synced_videos
+
+Run started:  2026-09-02 11:47:08
+Run finished: 2026-09-02 12:06:25
+Total processing time: 19 min 16.6 s  (1156.6 s)

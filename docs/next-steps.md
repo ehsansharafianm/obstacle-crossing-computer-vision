@@ -4,7 +4,17 @@ Living checklist of what's next, from the current state onward. Each stage marks
 **[You]** (physical lab work) vs **[Code]** (I build/run it). See
 [[camera-imu-workflow]] for the full design and [[open-items]] for decisions.
 
-## Where we are  (see [[progress-log]] + [[2026-08-29]] for the full story)
+## Where we are  (see [[progress-log]] + [[2026-09-02]] for the full story)
+- ✅ **First accuracy validation (rigid wand, test21):** precision ~2–6 mm std, but a
+  systematic **~6 % scale underestimate** → likely the calibration board square size.
+  Report/plots in `results/validation/test21/`; tool `matlab/plot_validation.m`.
+- ✅ **Repo reorg** (videos/ raw + results/ generated) and **robustness pass** — detection
+  hardened against scene/wardrobe colour clashes (cone, shirt, shorts) found in test18–20.
+- 🔜 **NEXT: fix the ~6 % scale** — re-measure the calibration board squares with calipers;
+  if ≠ 62.9 mm, update `results/calibration/active/board_measured_large.json`, re-run
+  `build_calibration 17`, and re-shoot the wand (test) to confirm error drops to a few mm.
+
+### Earlier state  (2026-08-29)
 - ✅ **3× Pixel-8 rig** (ultrawide 60 fps): per-phone intrinsics, one-command 3-camera
   calibration (calib10: cam1↔cam2 0.71 px, floor 0.52 mm, cam2↔cam3 0.97 px).
 - ✅ **Robust clap sync for all 3 cameras** — rigid-shoe-arbitrated + clap-seeded, and the
