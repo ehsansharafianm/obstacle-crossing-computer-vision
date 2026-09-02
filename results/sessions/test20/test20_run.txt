@@ -1,0 +1,42 @@
+Test: test20
+
+Run started: 2026-09-02 13:48:33
+Recording mode: normal (~60 fps)
+[test20] cam1.mp4 (cam1): tracked in 471.5s
+[test20] cam2.mp4 (cam2): tracked in 426.2s
+[test20] cam3.mp4 (cam3): tracked in 380.3s
+[test20] 3-camera mode
+  L_toe   cam1 26%  cam2 32%  cam3 30%
+  L_heel  cam1 26%  cam2 32%  cam3 30%
+  R_toe   cam1 23%  cam2 20%  cam3 34%
+  R_heel  cam1 23%  cam2 20%  cam3 34%
+Clap: cam1 @ 26.597s (x14), cam2 @ 15.452s (x9)  -> cam2 +11.145s
+Motion candidate: cam2 -4.933s
+-> cam2 sync: +11.185s = cam1   (toe-heel scatter 16 mm)  [clap agrees]
+Clap: cam3 @ 5.944s (x11)  -> cam3 +20.653s
+-> cam3 sync: +20.673s = cam1   (cam2+cam3 scatter 20 mm)  [clap agrees]
+Audio-sync figure -> test20_audiosync.png  (3 cameras, clap jumps + alignment)
+Reconstructing from 3 cameras (marker needs >=2 to get a 3D point)
+  reconstructed points: 6116 from cam1+cam2 (wide baseline), 2898 gap-filled with cam3
+  L foot: toe-heel 275 mm, dropped 549 outliers
+  R foot: toe-heel 272 mm, dropped 218 outliers
+Obstacle markers reconstructed in 4807/7989 frames (443 frames rejected for high reprojection error)
+Output: world frame (Z = height above floor)
+  L_toe    26% reconstructed
+  L_heel   26% reconstructed
+  R_toe    26% reconstructed
+  R_heel   26% reconstructed
+  obstacle1 59% reconstructed
+  obstacle2 59% reconstructed
+Time origin: t=0 at the clap (cam1 @ 26.60s in); kept 6408 post-clap frames, dropped 1581 pre-clap
+
+Saved test20_trajectory.xlsx (markers sheet incl. obstacle1/obstacle2 + audio), test20_trajectory.png
+Aligned review clips (start AT the clap, t=0) -> synced_videos/:
+  cam1: synced_videos/cam1_synced.mp4 already exists -- kept
+  cam2: synced_videos/cam2_synced.mp4 already exists -- kept
+  cam3: synced_videos/cam3_synced.mp4 already exists -- kept
+  3 aligned review clip(s) -> C:\Users\BiomechanicsLab2\Documents\obstacle-crossing-computer-vision\results\sessions\test20\synced_videos
+
+Run started:  2026-09-02 13:48:33
+Run finished: 2026-09-02 14:10:17
+Total processing time: 21 min 44.7 s  (1304.7 s)

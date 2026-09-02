@@ -31,7 +31,7 @@ COLOR_RANGES = {
     "purple":     [((114, 65, 45), (134, 255, 255))],   # left toe
     "green":      [((34, 90, 60), (75, 255, 255))],      # left heel (upper<teal)
     "pink":       [((148, 90, 70), (172, 255, 255))],    # right toe (upper<red)
-    "teal":       [((88, 140, 60), (106, 255, 255))],    # right heel (S>=140: marker ~204 kept, blue-grey clothing ~110 excluded)
+    "teal":       [((88, 150, 60), (101, 255, 255))],    # right heel. Marker hue ~96-98, S 150-231; hue cap 101 + S>=150 exclude blue-grey shorts (hue ~105, S~130) that sit right at the marker's edge
     # Obstacle reds are ORANGE-RED (hue ~3-9), so BOTH hue ends are needed. Skin
     # (~hue 5-15) and the orange support poles (~hue 16-25) overlap the low end, so
     # detect_round_blobs adds a shape gate; the high saturation floor drops the
