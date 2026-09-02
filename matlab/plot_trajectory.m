@@ -11,11 +11,16 @@ function plot_trajectory(csvfile)
 % Any number of markers is supported (names auto-detected from the headers).
 % Markers named obstacle* are drawn as scatter POINTS (quasi-static); feet as lines.
 %
+% Line/point colours MATCH each physical marker (purple toe, green heel, pink/teal
+% right foot, red obstacle) so the plots read like the real setup.
+%
 % Opens up to THREE figures: (1) the 3D trajectory, (2) X / Y / Z vs time, and
 % (3) the audio clap-sync (if the .xlsx has an 'audio' sheet). Re-running closes
-% the previous set first. Controls (on the 3D figure, top-left):
-%   * one checkbox per marker  -> toggle it ON/OFF in BOTH panels
-%   * Line / Scatter dropdown  -> switch the feet between line and points
+% the previous set first. Controls:
+%   * one checkbox per marker  -> on BOTH the 3D figure (stacked, top-left) AND the
+%                                 positions-vs-time figure (a row across the top);
+%                                 either hides/shows the marker in every panel.
+%   * Line / Scatter dropdown (3D figure) -> switch the feet between line and points
 %                                 (obstacle markers stay scatter points).
 
     % ===================== STYLE (edit here) =====================
@@ -71,7 +76,8 @@ function plot_trajectory(csvfile)
     end
     nM = numel(markers);
     if nM == 0, error('No "<marker>_x_mm" columns found.'); end
-    cmap = lines(max(nM, 3));
+    cmap = lines(max(nM, 3));      % fallback for unrecognised marker names
+    mcol = zeros(nM, 3);           % actual per-marker colours (filled in the plot loop)
 
     % --- Figure 1: the 3D trajectory (carries the marker/obstacle toggles) ---
     fig3 = figure('Name', 'Marker trajectories - 3D', 'Color', 'w', ...
@@ -87,12 +93,12 @@ function plot_trajectory(csvfile)
     % --- Figure 2: X / Y / Z vs time ---
     figp = figure('Name', 'Marker positions vs time', 'Color', 'w', ...
                   'Tag', 'trajfig', 'Position', [860 120 700 720]);
-    axX = axes('Parent', figp, 'Position', [0.15 0.70 0.80 0.25]); prep(axX);
+    axX = axes('Parent', figp, 'Position', [0.15 0.66 0.80 0.22]); prep(axX);
     ylabel(axX, 'X (mm)', 'FontSize', S.ylbl, 'FontName', S.font, 'FontWeight', 'bold');
     title(axX, 'Position vs time', 'FontSize', S.title, 'FontName', S.font, 'FontWeight', 'bold');
-    axY = axes('Parent', figp, 'Position', [0.15 0.40 0.80 0.25]); prep(axY);
+    axY = axes('Parent', figp, 'Position', [0.15 0.39 0.80 0.22]); prep(axY);
     ylabel(axY, 'Y (mm)', 'FontSize', S.ylbl, 'FontName', S.font, 'FontWeight', 'bold');
-    axZ = axes('Parent', figp, 'Position', [0.15 0.10 0.80 0.25]); prep(axZ);
+    axZ = axes('Parent', figp, 'Position', [0.15 0.10 0.80 0.22]); prep(axZ);
     xlabel(axZ, 'time (s)', 'FontSize', S.xlbl, 'FontName', S.font, 'FontWeight', 'bold');
     ylabel(axZ, 'Z (mm)', 'FontSize', S.ylbl, 'FontName', S.font, 'FontWeight', 'bold');
 
@@ -101,7 +107,7 @@ function plot_trajectory(csvfile)
     H = containers.Map();
     isObstacle = containers.Map();
     for k = 1:nM
-        m = markers{k}; c = cmap(k, :);
+        m = markers{k}; c = markerColor(m, k, cmap); mcol(k, :) = c;
         x = T.([m '_x_mm']); y = T.([m '_y_mm']); z = T.([m '_z_mm']);
         obs = startsWith(m, 'obstacle'); isObstacle(m) = obs;
         if obs, ls = 'none'; mk = '.'; ms = S.obstPt; else, ls = '-'; mk = 'none'; ms = S.footPt; end
@@ -147,12 +153,23 @@ function plot_trajectory(csvfile)
             'LineWidth', S.boxLW, 'Box', 'on');
     end
 
-    % --- per-marker on/off checkboxes ---
+    % --- per-marker on/off checkboxes on the 3D figure (top-left, stacked) ---
     for k = 1:nM
         m = markers{k};
         uicontrol(fig3, 'Style', 'checkbox', 'String', m, 'Value', 1, ...
             'Units', 'normalized', 'Position', [0.05 0.955-0.030*(k-1) 0.16 0.028], ...
-            'BackgroundColor', 'w', 'FontWeight', 'bold', 'ForegroundColor', cmap(k, :), ...
+            'BackgroundColor', 'w', 'FontWeight', 'bold', 'ForegroundColor', mcol(k, :), ...
+            'Callback', @(src, ~) set(H(m), 'Visible', onoff(src.Value)));
+    end
+
+    % --- the SAME toggles on the positions-vs-time figure (a row across the top),
+    %     so markers can be shown/hidden from either window (both drive H(m)) ---
+    cbw = min(0.80 / nM, 0.16);
+    for k = 1:nM
+        m = markers{k};
+        uicontrol(figp, 'Style', 'checkbox', 'String', m, 'Value', 1, ...
+            'Units', 'normalized', 'Position', [0.15+cbw*(k-1) 0.94 cbw 0.035], ...
+            'BackgroundColor', 'w', 'FontWeight', 'bold', 'ForegroundColor', mcol(k, :), ...
             'Callback', @(src, ~) set(H(m), 'Visible', onoff(src.Value)));
     end
 
@@ -217,6 +234,25 @@ function setstyle(H, mode, isObstacle, S)
         else                  % Scatter
             set(h, 'LineStyle', 'none', 'Marker', '.', 'MarkerSize', S.footPt);
         end
+    end
+end
+
+function c = markerColor(name, k, fallback)
+% Colour each marker to MATCH its physical marker colour, so the plots read
+% the same as the real setup. Unknown names fall back to the lines() colormap.
+    switch lower(name)
+        case 'l_toe',  c = [0.55 0.20 0.75];    % purple
+        case 'l_heel', c = [0.15 0.65 0.20];    % green
+        case 'r_toe',  c = [0.95 0.40 0.70];    % pink
+        case 'r_heel', c = [0.10 0.60 0.60];    % teal
+        otherwise
+            if startsWith(lower(name), 'obstacle')   % red family (both are red balls)
+                if endsWith(name, '2'), c = [0.60 0.08 0.08];   % darker red
+                else,                   c = [0.90 0.15 0.15];   % red
+                end
+            else
+                c = fallback(k, :);
+            end
     end
 end
 
