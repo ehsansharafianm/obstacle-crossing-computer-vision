@@ -293,38 +293,30 @@ def main():
         return best[1], best[0] / 4.0                   # points, mean reproj error (norm)
 
     def match_reds_nview(obs):
-        """N-view version: obs = list of (n2 (2,2) normalised reds, P (3,4)) for every
-        camera that sees >=2 reds, in cam-1 frame. Establish the 2-marker correspondence
-        (first camera = reference; each other camera picks the permutation with lowest
-        pairwise-reprojection error vs the reference), then n-view triangulate each
-        marker from ALL cameras that see it. Returns (points (2,3), mean reproj error).
-        Any pair suffices, so a red is reconstructed whenever >=2 of the 3 cameras see
-        it -- not only cam1+cam2."""
-        ref_n, ref_P = obs[0]
-        assign = [[0, 1]]                                # ref camera: markers 0,1 as-is
-        for n, P in obs[1:]:
-            best = None
-            for perm in ([0, 1], [1, 0]):
-                err = 0.0
+        """obs = list of (n2 (2,2) normalised reds, P (3,4)) for every camera that
+        sees >=2 reds, in cam-1 frame. Reconstruct the 2 obstacle reds from the CAMERA
+        PAIR whose 2-marker correspondence reprojects most consistently, dropping the
+        rest. This is robust to one camera detecting a FALSE red (e.g. a guidance cone
+        in cam1's view only): that camera's pairs reproject badly and simply lose to a
+        clean pair. In a clean session the tightest pair (usually the widest baseline)
+        wins. Returns (points (2,3), mean reproj error of the chosen pair)."""
+        from itertools import combinations
+        best = None                                      # (rerr, points(2,3))
+        for a, b in combinations(range(len(obs)), 2):
+            na, Pa = obs[a]; nb, Pb = obs[b]
+            for perm in ([0, 1], [1, 0]):                # 2-marker correspondence
+                Xs, err = [], 0.0
                 for m in range(2):
-                    Xh = cv2.triangulatePoints(ref_P, P, ref_n[m].reshape(2, 1),
-                                               n[perm[m]].reshape(2, 1))
-                    X = (Xh[:3] / Xh[3]).ravel()
-                    for PP, nn in ((ref_P, ref_n[m]), (P, n[perm[m]])):
+                    Xh = cv2.triangulatePoints(Pa, Pb, na[m].reshape(2, 1),
+                                               nb[perm[m]].reshape(2, 1))
+                    X = (Xh[:3] / Xh[3]).ravel(); Xs.append(X)
+                    for PP, nn in ((Pa, na[m]), (Pb, nb[perm[m]])):
                         p = PP @ np.append(X, 1.0); p = p[:2] / p[2]
                         err += float(np.hypot(p[0] - nn[0], p[1] - nn[1]))
-                if best is None or err < best[0]:
-                    best = (err, perm)
-            assign.append(best[1])
-        Xs, tot, cnt = [], 0.0, 0
-        for m in range(2):
-            pts = [obs[c][0][assign[c][m]] for c in range(len(obs))]
-            Ps = [obs[c][1] for c in range(len(obs))]
-            X = triangulate_nview(pts, Ps); Xs.append(X)
-            for p, P in zip(pts, Ps):
-                q = P @ np.append(X, 1.0); q = q[:2] / q[2]
-                tot += float(np.hypot(q[0] - p[0], q[1] - p[1])); cnt += 1
-        return np.array(Xs), tot / max(cnt, 1)
+                rerr = err / 4.0
+                if best is None or rerr < best[0]:
+                    best = (rerr, np.array(Xs))
+        return best[1], best[0]
 
     def timed_track(cam, tag):
         t0 = time.perf_counter()
