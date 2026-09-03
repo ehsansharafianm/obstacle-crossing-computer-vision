@@ -1,13 +1,12 @@
 {
-  "_comment": "LARGE tiled board for extrinsics. Printed at 95.35/100 = 0.9535 scale (measured 2026-08-15). Corrected true sizes below. Intrinsics used a different (small) board; that's fine - extrinsics only needs this board's true geometry.",
+  "_comment": "LARGE tiled board for extrinsics. Square re-measured with calipers 2026-09-02 = 62.62 mm (was 62.931 from nominal 66.0 x 0.9535). Marker scaled by the same 62.62/66.0 = 0.94879. Intrinsics used a different (small) board; that's fine - extrinsics only needs this board's true geometry.",
   "squares_x": 8,
   "squares_y": 6,
   "dict_name": "DICT_5X5_100",
   "nominal_square_mm": 66.0,
   "nominal_marker_mm": 49.0,
-  "ref_ruler_nominal_mm": 100.0,
-  "ref_ruler_measured_mm": 95.35,
-  "print_scale": 0.9535,
-  "square_len_m": 0.0629310,
-  "marker_len_m": 0.0467215
+  "square_measured_mm": 62.62,
+  "print_scale": 0.94879,
+  "square_len_m": 0.0626200,
+  "marker_len_m": 0.0464907
 }
