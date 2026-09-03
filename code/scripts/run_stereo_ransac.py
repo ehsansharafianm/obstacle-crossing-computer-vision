@@ -81,12 +81,21 @@ def solve_extrinsics(cam1_video, cam2_video,
         return [p for p in P if p["hold"] in keep]
 
     say(f"Scanning + PnP cam1 ({cam1_video})...")
-    P1 = cap_holds(poses(str(cam1_video), spec, intr1.camera_matrix, intr1.dist_coeffs))
+    P1raw = poses(str(cam1_video), spec, intr1.camera_matrix, intr1.dist_coeffs)
     say(f"Scanning + PnP cam2 ({cam2_video})...")
-    P2 = cap_holds(poses(str(cam2_video), spec, intr2.camera_matrix, intr2.dist_coeffs))
+    P2raw = poses(str(cam2_video), spec, intr2.camera_matrix, intr2.dist_coeffs)
+    # --- POSE DIAGNOSTIC: how many distinct STATIC board holds each camera found ---
+    n1raw = len(set(p["hold"] for p in P1raw))
+    n2raw = len(set(p["hold"] for p in P2raw))
+    capnote = f"  (each capped to {max_holds} for the matcher)" if max(n1raw, n2raw) > max_holds else ""
+    say(f"  static board holds found:  cam1 {n1raw},  cam2 {n2raw}{capnote}")
+    if min(n1raw, n2raw) < 15:
+        say("  NOTE: fewer than ~15 static holds. A hold is a pose where the board is held")
+        say("        STILL (>=0.4 s) and seen by that camera. For more pose-pairs, PAUSE ~1 s")
+        say("        at 15-20 distinct poses (varied tilt), each visible to BOTH cameras.")
+    P1 = cap_holds(P1raw); P2 = cap_holds(P2raw)
     R1 = np.array([p["R"] for p in P1]); t1 = np.array([p["t"] for p in P1]); h1 = np.array([p["hold"] for p in P1])
     R2 = np.array([p["R"] for p in P2]); t2 = np.array([p["t"] for p in P2]); h2 = np.array([p["hold"] for p in P2])
-    say(f"cam1 holds={len(set(h1))} ({len(P1)} branches), cam2 holds={len(set(h2))} ({len(P2)} branches)")
 
     ROT_TOL, T_TOL = np.radians(rot_tol_deg), t_tol
 
@@ -117,7 +126,12 @@ def solve_extrinsics(cam1_video, cam2_video,
             pr = consistent_pairs(R, T)
             if len(pr) > len(best_pairs):
                 best_pairs = pr
-    say(f"Largest geometrically-consistent set: {len(best_pairs)} hold-pairs")
+    ncand = min(len(set(h1)), len(set(h2)))
+    say(f"Largest geometrically-consistent set: {len(best_pairs)} hold-pairs "
+        f"(of {ncand} candidate holds matched across both cameras)")
+    if len(best_pairs) < 12:
+        say("  (a low consistent-set count usually means poses weren't held still, weren't")
+        say("   seen well by both cameras at once, or lacked variety in tilt/position)")
 
     if len(best_pairs) < 4:
         raise SystemExit("Too few consistent pairs -- re-check the extrinsics clips "
@@ -136,6 +150,8 @@ def solve_extrinsics(cam1_video, cam2_video,
         obj_pts.append(np.array([board_obj[int(s)] for s in shared], np.float32))
         img1.append(np.array([m1[int(s)] for s in shared], np.float32))
         img2.append(np.array([m2[int(s)] for s in shared], np.float32))
+    say(f"  {len(obj_pts)}/{len(best_pairs)} pose-pairs feed stereoCalibrate "
+        f"(>=8 corners shared by both cameras)")
 
     # stereoCalibrate with iterative per-view outlier rejection.
     idx = list(range(len(obj_pts)))
