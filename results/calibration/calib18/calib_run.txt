@@ -1,0 +1,24 @@
+Calibration session: calib18
+
+[calib18]  extrinsics: cam1_ext.mp4 + cam2_ext.mp4   floor: cam1_floor.mp4 + cam2_floor.mp4
+  board: C:\Users\BiomechanicsLab2\Documents\obstacle-crossing-computer-vision\results\calibration\active\board_measured_large.json
+
+-- Stereo extrinsics --
+pairs used = 16   RMS = 1.250 px   baseline = 2.256 m
+
+-- World frame (floor) --
+floor-flatness residual = 0.72 mm   camera height = 1238 mm
+Axis check (mm):  cam1 world (X=-1005, Y=110)   cam2 world (X=1210, Y=538)
+  +X points toward the cam2 side; +Y toward the cam2 side.
+  (Set X/Y by how you lay the floor board: origin corner, long edge = +X, short = +Y.)
+
+-- cam2<->cam3 extrinsics (3rd camera) --
+pairs used = 16   RMS = 0.783 px   baseline = 1.233 m
+cam3 calibrated -> 3-camera reconstruction enabled for this session.
+
+Active calibration updated (results/calibration/active/: stereo_extrinsics.npz + world_transform.npz + stereo_extrinsics_cam2cam3.npz).
+Every test recorded in THIS session (cameras unmoved) now uses this calibration.
+
+Run started:  2026-09-03 10:20:13
+Run finished: 2026-09-03 10:39:55
+Total processing time: 19 min 42.9 s  (1182.9 s)
