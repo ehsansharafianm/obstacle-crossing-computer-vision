@@ -57,14 +57,15 @@ def solve_extrinsics(cam1_video, cam2_video,
                      intr1_path=str(CALIB_ACTIVE / "intrinsics_cam1.npz"),
                      intr2_path=str(CALIB_ACTIVE / "intrinsics_cam2.npz"),
                      out=str(CALIB_ACTIVE / "stereo_extrinsics.npz"),
-                     rot_tol_deg=4.0, t_tol=0.15, max_holds=40, verbose=True):
+                     rot_tol_deg=4.0, t_tol=0.15, max_holds=70, verbose=True):
     """Solve stereo extrinsics from two board-at-poses clips. Returns
     (StereoExtrinsics, rms_px, n_pairs).
 
     `max_holds` caps the distinct board holds per camera (evenly spread across the
-    clip). The consistent-set search is O(N^2 * N) in the number of pose branches,
-    so a long clip with hundreds of holds explodes; ~40 holds is far more than the
-    ~15-20 needed for a good stereo solve and keeps the search fast."""
+    clip). The consistent-set search grows fast (~O((N_branches)^2)^2), so a clip
+    with hundreds of holds explodes -- but 70 stays quick (seconds) and, unlike the
+    old 40 cap, keeps enough poses for a tight solve: on calib19 raising 40->70 grew
+    the consistent set 14->24 pairs and dropped cam1<->cam2 RMS 1.62->0.75 px."""
     def say(*a):
         if verbose:
             print(*a)
