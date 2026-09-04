@@ -1,0 +1,42 @@
+Test: test23
+
+Run started: 2026-09-04 17:55:56
+Recording mode: normal (~60 fps)
+[test23] cam1.mp4 (cam1): tracked in 573.6s
+[test23] cam2.mp4 (cam2): tracked in 479.7s
+[test23] cam3.mp4 (cam3): tracked in 474.5s
+[test23] 3-camera mode
+  L_toe   cam1 30%  cam2 23%  cam3 23%
+  L_heel  cam1 30%  cam2 23%  cam3 23%
+  R_toe   cam1 25%  cam2 13%  cam3 28%
+  R_heel  cam1 25%  cam2 13%  cam3 28%
+Clap: cam1 @ 8.697s (x18), cam2 @ 5.073s (x12)  -> cam2 +3.623s
+Motion candidate: cam2 +3.017s
+-> cam2 sync: +3.663s = cam1   (toe-heel scatter 9 mm)  [clap agrees]
+Clap: cam3 @ 1.554s (x14)  -> cam3 +7.142s
+-> cam3 sync: +7.142s = cam1   (cam2+cam3 scatter 18 mm)  [clap agrees]
+Audio-sync figure -> test23_audiosync.png  (3 cameras, clap jumps + alignment)
+Reconstructing from 3 cameras (marker needs >=2 to get a 3D point)
+  reconstructed points: 5542 from cam1+cam2 (wide baseline), 4078 gap-filled with cam3
+  L foot: toe-heel 273 mm, dropped 176 outliers
+  R foot: toe-heel 284 mm, dropped 60 outliers
+Obstacle markers reconstructed in 4561/8725 frames (429 frames rejected for high reprojection error)
+Output: world frame (Z = height above floor)
+  L_toe    28% reconstructed
+  L_heel   28% reconstructed
+  R_toe    26% reconstructed
+  R_heel   26% reconstructed
+  obstacle1 51% reconstructed
+  obstacle2 51% reconstructed
+Time origin: t=0 at the clap (cam1 @ 8.70s in); kept 8208 post-clap frames, dropped 517 pre-clap
+
+Saved test23_trajectory.xlsx (markers sheet incl. obstacle1/obstacle2 + audio), test23_trajectory.png
+Aligned review clips (start AT the clap, t=0) -> synced_videos/:
+  cam1: clap @ 8.70s -> synced_videos/cam1_synced.mp4
+  cam2: clap @ 5.07s -> synced_videos/cam2_synced.mp4
+  cam3: clap @ 1.55s -> synced_videos/cam3_synced.mp4
+  3 aligned review clip(s) -> C:\Users\BiomechanicsLab2\Documents\obstacle-crossing-computer-vision\results\sessions\test23\synced_videos
+
+Run started:  2026-09-04 17:55:56
+Run finished: 2026-09-04 18:24:23
+Total processing time: 28 min 26.4 s  (1706.4 s)
