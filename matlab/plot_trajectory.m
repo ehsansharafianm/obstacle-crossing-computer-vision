@@ -1,10 +1,12 @@
-function plot_trajectory(csvfile)
-% PLOT_TRAJECTORY  Interactive 3D + X/Y/Z-vs-time plot of marker trajectories,
-% styled for presentation (Arial, bold labels, thick lines/box), with toggles.
-%
-%   plot_trajectory                 % opens a file picker
-%   plot_trajectory('test13')       % -> results/sessions/test13/test13_trajectory.xlsx
-%   plot_trajectory('foot_trajectory.csv')      % explicit file / full path
+clc
+clear all
+close all
+addpath(fileparts(mfilename('fullpath')));
+
+% PLOT_TRAJECTORY (script)  Interactive 3D + X/Y/Z-vs-time plot of marker
+% trajectories, styled for presentation (Arial, bold labels, thick lines/box),
+% with per-marker toggles. Run it and enter the test NUMBER at the prompt (e.g. 22)
+% -> results/sessions/testN/testN_trajectory.xlsx (falls back to .csv).
 %
 % Reads the marker trajectories (a .xlsx "markers" sheet, or a plain .csv):
 %   time_s, <marker>_x_mm, <marker>_y_mm, <marker>_z_mm, ...
@@ -36,23 +38,15 @@ function plot_trajectory(csvfile)
     S.obstPt  = 16;        % obstacle scatter point size
     % =============================================================
 
-    if nargin < 1 || isempty(csvfile)
-        [f, p] = uigetfile({'*.xlsx;*.csv', 'Trajectory files'}, 'Select a trajectory file');
-        if isequal(f, 0), return; end
-        datafile = fullfile(p, f);
-    elseif exist(csvfile, 'file')
-        datafile = csvfile;                                   % explicit path given
-    else
-        % A bare test id (e.g. 'test13') -> results/sessions/<id>/<id>_trajectory.xlsx
-        % (falls back to .csv), resolved relative to this .m file.
-        id   = csvfile;
-        root = fileparts(fileparts(mfilename('fullpath')));   % repo root
-        candx = fullfile(root, 'results', 'sessions', id, [id '_trajectory.xlsx']);
-        candc = fullfile(root, 'results', 'sessions', id, [id '_trajectory.csv']);
-        if exist(candx, 'file'),     datafile = candx;
-        elseif exist(candc, 'file'), datafile = candc;
-        else,  error('No trajectory file for "%s". Looked for:\n  %s\n  %s', id, candx, candc);
-        end
+    % Enter the test number at the prompt -> results/sessions/testN/testN_trajectory.xlsx
+    tn = input('  Input Test Number: ');
+    id = ['test' num2str(tn)];
+    root  = fileparts(fileparts(mfilename('fullpath')));      % repo root
+    candx = fullfile(root, 'results', 'sessions', id, [id '_trajectory.xlsx']);
+    candc = fullfile(root, 'results', 'sessions', id, [id '_trajectory.csv']);
+    if exist(candx, 'file'),     datafile = candx;
+    elseif exist(candc, 'file'), datafile = candc;
+    else,  error('No trajectory file for "%s". Looked for:\n  %s\n  %s', id, candx, candc);
     end
     isxlsx = endsWith(lower(datafile), '.xlsx');
 
@@ -222,8 +216,8 @@ function plot_trajectory(csvfile)
         end
         linkaxes([axa1 axa2], 'x');
     end
-end
 
+%% ======================= LOCAL FUNCTIONS =======================
 function setstyle(H, mode, isObstacle, S)
     ks = keys(H);
     for i = 1:numel(ks)
