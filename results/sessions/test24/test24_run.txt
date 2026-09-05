@@ -1,0 +1,42 @@
+Test: test24
+
+Run started: 2026-09-05 12:17:13
+Recording mode: normal (~60 fps)
+[test24] cam1.mp4 (cam1): tracked in 1009.9s
+[test24] cam2.mp4 (cam2): tracked in 990.4s
+[test24] cam3.mp4 (cam3): tracked in 1028.3s
+[test24] 3-camera mode
+  L_toe   cam1 34%  cam2 22%  cam3 31%
+  L_heel  cam1 34%  cam2 22%  cam3 31%
+  R_toe   cam1 20%  cam2 27%  cam3 33%
+  R_heel  cam1 20%  cam2 27%  cam3 33%
+Clap: cam1 @ 9.107s (x25), cam2 @ 5.233s (x28)  -> cam2 +3.874s
+Motion candidate: cam2 +3.717s
+-> cam2 sync: +3.874s = cam1   (toe-heel scatter 19 mm)  [clap agrees]
+Clap: cam3 @ 1.940s (x23)  -> cam3 +7.166s
+-> cam3 sync: +7.146s = cam1   (cam2+cam3 scatter 19 mm)  [clap agrees]
+Audio-sync figure -> test24_audiosync.png  (3 cameras, clap jumps + alignment)
+Reconstructing from 3 cameras (marker needs >=2 to get a 3D point)
+  reconstructed points: 11146 from cam1+cam2 (wide baseline), 10910 gap-filled with cam3
+  L foot: toe-heel 278 mm, dropped 957 outliers
+  R foot: toe-heel 288 mm, dropped 111 outliers
+Obstacle markers reconstructed in 8709/15835 frames (1801 frames rejected for high reprojection error)
+Output: world frame (Z = height above floor)
+  L_toe    33% reconstructed
+  L_heel   33% reconstructed
+  R_toe    34% reconstructed
+  R_heel   34% reconstructed
+  obstacle1 53% reconstructed
+  obstacle2 52% reconstructed
+Time origin: t=0 at the clap (cam1 @ 9.11s in); kept 15294 post-clap frames, dropped 541 pre-clap
+
+Saved test24_trajectory.xlsx (markers sheet incl. obstacle1/obstacle2 + audio), test24_trajectory.png
+Aligned review clips (start AT the clap, t=0) -> synced_videos/:
+  cam1: clap @ 9.11s -> synced_videos/cam1_synced.mp4
+  cam2: clap @ 5.23s -> synced_videos/cam2_synced.mp4
+  cam3: clap @ 1.94s -> synced_videos/cam3_synced.mp4
+  3 aligned review clip(s) -> C:\Users\BiomechanicsLab2\Documents\obstacle-crossing-computer-vision\results\sessions\test24\synced_videos
+
+Run started:  2026-09-05 12:17:13
+Run finished: 2026-09-05 13:13:03
+Total processing time: 55 min 49.5 s  (3349.5 s)
