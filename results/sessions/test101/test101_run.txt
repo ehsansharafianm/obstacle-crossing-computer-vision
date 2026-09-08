@@ -1,0 +1,42 @@
+Test: test101
+
+Run started: 2026-09-08 11:19:48
+Recording mode: normal (~60 fps)
+[test101] cam1.mp4 (cam1): tracked in 3732.1s
+[test101] cam2.mp4 (cam2): tracked in 3419.8s
+[test101] cam3.mp4 (cam3): tracked in 3456.5s
+[test101] 3-camera mode
+  L_toe   cam1 28%  cam2 15%  cam3 25%
+  L_heel  cam1 28%  cam2 15%  cam3 25%
+  R_toe   cam1 18%  cam2 23%  cam3 25%
+  R_heel  cam1 18%  cam2 23%  cam3 25%
+Clap: cam1 @ 9.204s (x5), cam2 @ 5.210s (x7)  -> cam2 +3.994s
+Motion candidate: cam2 +3.883s
+-> cam2 sync: +3.954s = cam1   (toe-heel scatter 22 mm)  [clap agrees]
+Clap: cam3 @ 2.329s (x8)  -> cam3 +6.875s
+-> cam3 sync: +6.775s = cam1   (cam2+cam3 scatter 27 mm)  [clap agrees]
+Audio-sync figure -> test101_audiosync.png  (3 cameras, clap jumps + alignment)
+Reconstructing from 3 cameras (marker needs >=2 to get a 3D point)
+  reconstructed points: 38490 from cam1+cam2 (wide baseline), 25150 gap-filled with cam3
+  L foot: toe-heel 247 mm, dropped 4787 outliers
+  R foot: toe-heel 241 mm, dropped 440 outliers
+Obstacle markers reconstructed in 38784/57265 frames (6525 frames rejected for high reprojection error)
+Output: world frame (Z = height above floor)
+  L_toe    25% reconstructed
+  L_heel   25% reconstructed
+  R_toe    26% reconstructed
+  R_heel   26% reconstructed
+  obstacle1 64% reconstructed
+  obstacle2 65% reconstructed
+Time origin: t=0 at the clap (cam1 @ 9.20s in); kept 56717 post-clap frames, dropped 548 pre-clap
+
+Saved test101_trajectory.xlsx (markers sheet incl. obstacle1/obstacle2 + audio), test101_trajectory.png
+Aligned review clips (start AT the clap, t=0) -> synced_videos/:
+  cam1: clap @ 9.20s -> synced_videos/cam1_synced.mp4
+  cam2: clap @ 5.21s -> synced_videos/cam2_synced.mp4
+  cam3: clap @ 2.33s -> synced_videos/cam3_synced.mp4
+  3 aligned review clip(s) -> C:\Users\BiomechanicsLab2\Documents\obstacle-crossing-computer-vision\results\sessions\test101\synced_videos
+
+Run started:  2026-09-08 11:19:48
+Run finished: 2026-09-08 14:36:55
+Total processing time: 197 min 6.9 s  (11826.9 s)
