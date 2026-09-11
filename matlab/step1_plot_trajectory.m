@@ -3,7 +3,7 @@ clear all
 close all
 addpath(fileparts(mfilename('fullpath')));
 
-% PLOT_TRAJECTORY (script)  Interactive 3D + X/Y/Z-vs-time plot of marker
+% STEP 1 - PLOT_TRAJECTORY (script)  Interactive 3D + X/Y/Z-vs-time plot of marker
 % trajectories, styled for presentation (Arial, bold labels, thick lines/box),
 % with per-marker toggles. Run it and enter the test NUMBER at the prompt (e.g. 22)
 % -> results/sessions/testN/testN_trajectory.xlsx (falls back to .csv).

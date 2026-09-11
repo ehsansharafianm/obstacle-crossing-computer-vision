@@ -4,13 +4,13 @@ close all
 addpath(fileparts(mfilename('fullpath')));
 
 %% ========================================================================
-%% REFINE_TRAJECTORY (script) - clean reconstructed marker trajectories
+%% STEP 2 - REFINE_TRAJECTORY (script) - clean reconstructed marker trajectories
 %% ========================================================================
 % Run it and enter the test NUMBER at the prompt (e.g. 22). Reads
 %   results/sessions/testN/testN_trajectory.xlsx  (markers sheet)
 % and writes testN_trajectory_refined.xlsx next to it AND into the Analysis
 % Data/Camera CV/Test N/ folder. Cleans ALL markers (feet + obstacles):
-%   1) DESPIKE  - out-of-volume / height-floor gate + isolated 3D jump gate -> NaN
+%   1) DESPIKE  - out-of-volume / height-floor gate (+ obstacle>60cm cut) + 3D jump gate -> NaN
 %   2) GAP-FILL - pchip across gaps <= P.maxGapS (P.fillAllInternal bridges all)
 %   3) SMOOTH   - Savitzky-Golay per continuous span (jitter only; peaks kept)
 % time_s and the 'audio' sheet are preserved. A QC figure (3D + X/Y/Z vs time)
@@ -27,6 +27,8 @@ id = ['test' num2str(tn)];
     P.zFloorMM    = 0;     % height floor (mm): Z below this is impossible -> removed & re-filled,
                            %   and the final output is clamped to it (raise ~15-25 to also cut near-floor noise)
     P.zMaxMM      = 1300;  % height ceiling (mm) -> above this is a glitch
+    P.obstMaxMM   = 600;   % OBSTACLE-only height ceiling (mm): an obstacle above 60 cm is
+                           %   physically impossible -> noise, removed (feet can go higher)
     P.jumpMM      = 150;   % isolated 3D per-frame jump (mm) above which a spike is cut
     P.maxGapS     = 0.50;  % fill internal gaps up to this long (s) via pchip; longer -> NaN
     P.fillAllInternal = false;  % true = bridge EVERY internal gap regardless of length
@@ -79,6 +81,10 @@ id = ['test' num2str(tn)];
         Xd = X;  nSpk = 0;
         % 1) physical-bounds gate: out-of-volume coords (incl. sub-floor height) -> NaN
         oB = boundsGate(Xd, P.xyBounds, [P.zFloorMM P.zMaxMM]);  Xd(oB) = NaN;  nSpk = nSpk + nnz(oB);
+        % 1a) obstacle-only height cap: an obstacle marker above 60 cm is impossible -> NaN
+        if startsWith(lower(m),'obstacle')
+            oH = Xd(:,3) > P.obstMaxMM;  Xd(oH,:) = NaN;  nSpk = nSpk + nnz(oH);
+        end
         % 1b) optional local despike (off by default)
         if P.useHampel
             for a = 1:3
