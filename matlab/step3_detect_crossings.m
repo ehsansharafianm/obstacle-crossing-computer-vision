@@ -43,7 +43,7 @@ CROSS_MARKER = 'toe';   % foot point used for the y=0 crossing ('toe' or 'heel')
 MIN_OBST_FRAC = 0.05;   % obstacle must be visible in >= this fraction of a burst
                         % (no obstacle in view -> no real crossing -> skip)
 COPY_TO_ANALYSIS = true;   % also save the crossings file into the IMU project's results
-ANALYSIS_RESULTS = '';     % '' = auto (.../Analysis Environment/Results/Parameters Output/Test N)
+ANALYSIS_RESULTS = '';     % '' = auto (.../obstacle-crossing-project/Results/Parameters Output/Test N)
 
 %% ===================== INPUT + LOAD =====================
 tn = input('  Input Test Number: ');
@@ -255,7 +255,7 @@ if COPY_TO_ANALYSIS
     if isempty(ar)
         docs = fileparts(fileparts(mfilename('fullpath')));            % .../obstacle-crossing-computer-vision
         docs = fileparts(docs);                                        % .../Documents
-        ar = fullfile(docs,'Obstacle Crossing Project','Analysis Environment','Results','Parameters Output',['Test ' num2str(tn)]);
+        ar = fullfile(docs,'obstacle-crossing-project','Results','Parameters Output',['Test ' num2str(tn)]);
     end
     if ~isfolder(ar), mkdir(ar); end
     dst = fullfile(ar, [id '_crossings.xlsx']);

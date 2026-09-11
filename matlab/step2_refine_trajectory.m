@@ -41,7 +41,7 @@ id = ['test' num2str(tn)];
     P.hampelNSig  = 6;     % Hampel reject threshold (robust SDs), if enabled
     P.rigidReport = true;  % report (only) frames where toe<->heel distance is implausible
     P.copyToAnalysis = true;    % also copy the refined file into the Analysis Camera CV folder
-    P.analysisCamRoot = '';     % '' = auto (…/Obstacle Crossing Project/Analysis Environment/Data/Camera CV)
+    P.analysisCamRoot = '';     % '' = auto (…/obstacle-crossing-project/Data/Camera CV)
     % =================================================================
 
     %% ---- locate the raw workbook for this test ----
@@ -151,7 +151,7 @@ id = ['test' num2str(tn)];
         camRoot = P.analysisCamRoot;
         if isempty(camRoot)
             docs = fileparts(fileparts(fileparts(mfilename('fullpath'))));   % .../Documents
-            camRoot = fullfile(docs,'Obstacle Crossing Project','Analysis Environment','Data','Camera CV');
+            camRoot = fullfile(docs,'obstacle-crossing-project','Data','Camera CV');
         end
         num = regexp(char(base),'(\d+)','match','once');       % test22 -> 22
         if isempty(num)
