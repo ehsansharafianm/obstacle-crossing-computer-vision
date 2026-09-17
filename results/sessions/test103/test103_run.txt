@@ -1,0 +1,42 @@
+Test: test103
+
+Run started: 2026-09-16 18:12:00
+Recording mode: normal (~60 fps)
+[test103] cam1.mp4 (cam1): tracked in 2664.6s
+[test103] cam2.mp4 (cam2): tracked in 2813.4s
+[test103] cam3.mp4 (cam3): tracked in 2821.2s
+[test103] 3-camera mode
+  L_toe   cam1 24%  cam2 13%  cam3 21%
+  L_heel  cam1 24%  cam2 13%  cam3 21%
+  R_toe   cam1 14%  cam2 9%  cam3 18%
+  R_heel  cam1 14%  cam2 9%  cam3 18%
+Clap: cam1 @ 7.270s (x15), cam2 @ 3.804s (x12)  -> cam2 +3.466s
+Motion candidate: cam2 +3.250s
+-> cam2 sync: +3.426s = cam1   (toe-heel scatter 25 mm)  [clap agrees]
+Clap: cam3 @ 1.464s (x14)  -> cam3 +5.806s
+-> cam3 sync: +5.726s = cam1   (cam2+cam3 scatter 27 mm)  [clap agrees]
+Audio-sync figure -> test103_audiosync.png  (3 cameras, clap jumps + alignment)
+Reconstructing from 3 cameras (marker needs >=2 to get a 3D point)
+  reconstructed points: 20230 from cam1+cam2 (wide baseline), 11798 gap-filled with cam3
+  L foot: toe-heel 275 mm, dropped 2457 outliers
+  R foot: toe-heel 277 mm, dropped 652 outliers
+Obstacle markers reconstructed in 30049/41989 frames (4803 frames rejected for high reprojection error)
+Output: world frame (Z = height above floor)
+  L_toe    21% reconstructed
+  L_heel   21% reconstructed
+  R_toe    14% reconstructed
+  R_heel   14% reconstructed
+  obstacle1 67% reconstructed
+  obstacle2 69% reconstructed
+Time origin: t=0 at the clap (cam1 @ 7.27s in); kept 41557 post-clap frames, dropped 432 pre-clap
+
+Saved test103_trajectory.xlsx (markers sheet incl. obstacle1/obstacle2 + audio), test103_trajectory.png
+Aligned review clips (start AT the clap, t=0) -> synced_videos/:
+  cam1: clap @ 7.27s -> synced_videos/cam1_synced.mp4
+  cam2: clap @ 3.80s -> synced_videos/cam2_synced.mp4
+  cam3: clap @ 1.46s -> synced_videos/cam3_synced.mp4
+  3 aligned review clip(s) -> C:\Users\BiomechanicsLab2\Documents\obstacle-crossing-computer-vision\results\sessions\test103\synced_videos
+
+Run started:  2026-09-16 18:12:00
+Run finished: 2026-09-16 20:43:01
+Total processing time: 151 min 0.7 s  (9060.7 s)
