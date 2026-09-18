@@ -22,12 +22,11 @@ addpath(fileparts(mfilename('fullpath')));
 %   - within a real pass, each foot's TOE crosses y = 0 once -> LEADING = the foot
 %     that crosses first, TRAILING = the other;
 %   - begin/end = when the markers exist for that pass (the burst extent).
-% Obstacle type: the protocol is trials (a run of laps on the same obstacle). After
-% the figures open, the script walks you through it ONE TRIAL AT A TIME: for each
-% trial you type its start & end cycle (e.g. "8 10"), then its type = [width][height]
-% (e.g. 11), and it moves to the next trial - filling obstacle_code / width / height
-% in the Excel. The per-cycle obstacle height (obst_z) is printed to show the trial
-% edges (and is also visible on the Z panel of the overview figure).
+% Obstacle type: the protocol is trials (a run of laps on the same obstacle). After the
+% figures open, the script walks you through it ONE TRIAL AT A TIME - enter each trial on
+% one line as  [start end] = code  (code = [width][height]) - filling obstacle_code /
+% width / height in the Excel, then prints a trial summary. The per-cycle obstacle height
+% (obst_z) is printed to show the trial edges (and is on the Z panel of the overview figure).
 % Times are the camera clock (time_s); use them in the IMU analysis as a new
 % segmentation input after syncing.
 %
@@ -182,39 +181,61 @@ fprintf('Opened the per-pass verification viewer (Prev/Next or pick a pass).\n')
 drawnow;   % make sure all figures are on screen before the labeling prompt
 
 %% ===================== INTERACTIVE OBSTACLE LABELING (step by step) =====================
-% Guided, ONE TRIAL AT A TIME. Each trial = the run of consecutive cycles that used
-% the same obstacle. For each trial you type its start & end cycle (e.g. "8 10"), then
-% its obstacle type (e.g. 11). A cycle table with each cycle's obstacle HEIGHT is
-% printed first, to show you where one trial ends and the next begins.
+% Guided, ONE TRIAL AT A TIME. Each trial = the run of consecutive cycles that used the
+% same obstacle. Enter each trial on one line as  [start end] = code . A cycle table with
+% each cycle's obstacle HEIGHT is printed first, to show where each trial begins/ends.
 code = repmat({''},nP,1); wd = code; ht = code;    % blank = unlabeled
 fprintf('\n========================= OBSTACLE LABELING =========================\n');
-fprintf('Each TRIAL = the cycles that used the SAME obstacle (e.g. cycles 1-8).\n');
-fprintf('For every trial you will type:\n');
-fprintf('   1) its START and END cycle on one line, e.g.   8 10\n');
-fprintf('   2) its obstacle TYPE = [width][height], e.g.    11\n');
-fprintf('        width : 1 = 5 cm , 2 = 15 cm\n');
-fprintf('        height: 1 = 10%% , 2 = 20%% , 3 = 30%% of leg     (so 11 = narrow+low, 23 = wide+high)\n');
-fprintf('Then it moves on to the next trial. Press Enter at the start prompt when done.\n');
+fprintf('Each TRIAL = the cycles that used the SAME obstacle. Enter one trial per line as:\n');
+fprintf('     [start finish]=code        (example:  [a b]=c )\n');
+fprintf('        code = [width][height]:  width 1 = 5 cm , 2 = 15 cm\n');
+fprintf('                                 height 1 = 10%% , 2 = 20%% , 3 = 30%% of leg length\n');
+fprintf('   Enter (empty line) = finish labeling and save.   q = exit without saving.\n');
 fprintf('\nTip: the "obst_z" column below is the measured obstacle height - it jumps\n');
 fprintf('     between trials (>> marks a jump), so it shows you where each trial is.\n');
 printCycleGuide(P);
-trialN = 0;
+trialN = 0;  trials = zeros(0,3);   % [start end codeNum] per accepted trial (for the summary)
 while true
     rem = find(cellfun(@isempty,code));
     fprintf('\n===== TRIAL %d =====   cycles not yet labeled: %s\n', trialN+1, rangeStr(rem));
-    ab = askRange(sprintf('   Trial %d - start and end cycle (e.g. "8 10")  [Enter = finish]: ', trialN+1), nP);
-    if isempty(ab), break; end
+    [ab, c, act] = askTrial(sprintf('   Trial %d - [start finish]=code  (Enter=finish, q=exit): ', trialN+1), nP);
+    if strcmp(act,'quit')
+        fprintf('\nLabeling exited (q) - no labels written this run. Re-run step 3 to label.\n');
+        return;
+    end
+    if strcmp(act,'finish'), break; end
     a = ab(1); b = ab(2);
-    c = strtrim(input(sprintf('   Trial %d - obstacle type [width][height], e.g. 11: ', trialN+1),'s'));
-    if isempty(regexp(c,'^\d\d$','once'))
-        fprintf('   ! type must be two digits (e.g. 11, 23) - re-enter this trial.\n'); continue;
+    % Guard: warn before overwriting cycles that are already labeled (a common
+    % typo is starting the range too low, e.g. [16 31] instead of [26 31], which
+    % silently overwrites earlier trials). Suggest the next unlabeled cycle.
+    clash = intersect(a:b, find(~cellfun(@isempty,code)));
+    if ~isempty(clash)
+        nextfree = min(find(cellfun(@isempty,code))); %#ok<MXFND>
+        fprintf('   ! cycles %s are ALREADY labeled', rangeStr(clash));
+        if ~isempty(nextfree), fprintf(' - did you mean to start at %d?', nextfree); end
+        fprintf('\n');
+        if ~strcmpi(strtrim(input('     Overwrite them anyway? (y/N): ','s')),'y')
+            fprintf('     Skipped - re-enter this trial.\n'); continue;
+        end
     end
     for k = a:b, code{k}=c; wd{k}=c(1); ht{k}=c(2); end
-    trialN = trialN + 1;
+    trialN = trialN + 1;  trials(trialN,:) = [a b str2double(c)]; %#ok<AGROW>
     fprintf('   -> Trial %d = cycles %d-%d, obstacle %s  (width %s, height %s).\n', trialN, a, b, c, c(1), c(2));
     if all(~cellfun(@isempty,code))
         fprintf('\nAll %d cycles are labeled.\n', nP);
         if ~strcmpi(strtrim(input('   Add or correct another trial? (y/N): ','s')),'y'), break; end
+    end
+end
+
+% ---- summary of the trials you entered ----
+fprintf('\n===== TRIAL SUMMARY =====\n');
+if trialN == 0
+    fprintf('  (no trials labeled)\n');
+else
+    fprintf('%6s  %-12s  %6s  %6s  %7s\n','trial','cycles','code','width','height');
+    for i = 1:trialN
+        c = sprintf('%d', trials(i,3));
+        fprintf('%6d  %-12s  %6s  %6s  %7s\n', i, sprintf('%d-%d',trials(i,1),trials(i,2)), c, c(1), c(2));
     end
 end
 fprintf('\nFinal labels:\n');
@@ -277,20 +298,29 @@ function s = otherLeg(s0), if s0=='L', s='R'; else, s='L'; end, end
 function c = leadColor(s), if s=='L', c=[0.20 0.45 0.80]; else, c=[0.85 0.25 0.20]; end, end
 function s = dash(x), if isempty(x), s='-'; else, s=x; end, end
 
-function ab = askRange(prompt, nP)
-% Ask for a trial's start & end cycle on one line: "8 10" (or "8-10", or a single
-% "8" for a one-cycle trial). Blank input returns [] (= finished). Loops until the
-% entry is valid and within 1..nP; auto-swaps if given high-low.
+function [ab, code, act] = askTrial(prompt, nP)
+% Parse one trial line "[start finish]=code" (brackets optional; a single cycle also OK,
+% e.g. "[7 7]=21" or "7=21"). Returns ab=[start finish] (start<=finish, within 1..nP),
+% code = the two-digit string, and act = 'trial'. Empty line -> act='finish'; typing
+% q/quit/exit -> act='quit'. Loops until the entry is valid.
+    ab = []; code = ''; act = 'finish';
     while true
-        r = strtrim(input(prompt,'s'));
-        if isempty(r), ab = []; return; end
-        nums = str2double(regexp(r,'\d+','match'));
-        nums = nums(~isnan(nums));
-        if isempty(nums), fprintf('   ! type one or two cycle numbers, e.g. 8 10.\n'); continue; end
-        if numel(nums) == 1, a = nums(1); b = nums(1); else, a = nums(1); b = nums(2); end
-        if a > b, tmp = a; a = b; b = tmp; end
-        if a < 1 || b > nP, fprintf('   ! cycles must be within 1-%d.\n', nP); continue; end
-        ab = [a b]; return;
+        s = strtrim(input(prompt,'s'));
+        if isempty(s), act = 'finish'; return; end
+        if any(strcmpi(s, {'q','quit','exit','esc'})), act = 'quit'; return; end
+        parts = regexp(s, '=', 'split');
+        if numel(parts) ~= 2, fprintf('   ! use the form  [start finish]=code  (example: [a b]=c)\n'); continue; end
+        nums = str2double(regexp(parts{1}, '\d+', 'match'));
+        code = strtrim(parts{2});
+        if isempty(nums) || any(isnan(nums)) || numel(nums) > 2
+            fprintf('   ! the left side needs the cycle range, e.g.  [10 20]\n'); continue;
+        end
+        if isempty(regexp(code, '^\d\d$', 'once'))
+            fprintf('   ! the code must be two digits (width then height)\n'); continue;
+        end
+        if isscalar(nums), a = nums; b = nums; else, a = min(nums); b = max(nums); end
+        if a < 1 || b > nP, fprintf('   ! cycles must be within 1-%d\n', nP); continue; end
+        ab = [a b]; act = 'trial'; return;
     end
 end
 
