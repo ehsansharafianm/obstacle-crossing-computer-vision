@@ -42,7 +42,8 @@ def find_cam(folder, cam):
 def cut_session(video_dir, out_root, pre=2.0, crf=20, log=print, force=False):
     """Write clap-aligned review clips into out_root/synced_videos/, reading the
     ORIGINAL clips from video_dir. The originals are never touched by the analysis.
-    Skips a camera whose synced clip already exists (delete it or force=True)."""
+    A camera's clip is regenerated when the source is newer than the existing
+    synced clip (re-record) or force=True; an up-to-date clip is kept."""
     if _FF is None:
         log("  sync_cut: ffmpeg not available -- skipped"); return 0
     out_dir = Path(out_root) / OUT_SUBDIR
@@ -53,8 +54,13 @@ def cut_session(video_dir, out_root, pre=2.0, crf=20, log=print, force=False):
         if v is None:
             continue
         out = out_dir / f"{cam}_synced.mp4"
-        if out.exists() and not force:
-            log(f"  {cam}: {OUT_SUBDIR}/{out.name} already exists -- kept"); done += 1; continue
+        # Skip only if a synced clip exists AND is newer than the source: a re-record
+        # (source mtime > synced mtime) always regenerates, so review clips can't go
+        # stale against re-shot footage. `force=True` regenerates regardless.
+        if out.exists() and not force and out.stat().st_mtime >= v.stat().st_mtime:
+            log(f"  {cam}: {OUT_SUBDIR}/{out.name} up to date -- kept"); done += 1; continue
+        if out.exists():
+            log(f"  {cam}: {OUT_SUBDIR}/{out.name} stale ({'forced' if force else 'source re-recorded'}) -- regenerating")
         ev = clap_envelope(v)
         if ev is None:
             log(f"  {cam}: could not find clap -- skipped"); continue
