@@ -178,6 +178,24 @@ def _closest_pair(toes, heels, near_px):
     return best[0][:2], best[1][:2]
 
 
+def _pair_or_lone(toes, heels, near_px):
+    """Prefer the closest toe/heel pair (within near_px); if no such pair exists,
+    keep whichever single marker IS visible (largest blob of each colour) rather
+    than discarding both. Losing a marker only because its partner is occluded or
+    too blurred to detect throws away exactly the far-camera frames that give a
+    foot its second view -- the left foot's purple toe is often seen alone in the
+    side cameras while the green heel is missed. Lone markers are backed up by the
+    2-view reprojection gate + rigid toe-heel filter downstream, so stray
+    same-colour clutter (with no geometric match in another camera) is rejected
+    there rather than costing real coverage here."""
+    tp = _closest_pair(toes, heels, near_px)
+    if tp[0] is not None:
+        return tp
+    t = max(toes, key=lambda b: b[2])[:2] if toes else None
+    h = max(heels, key=lambda b: b[2])[:2] if heels else None
+    return t, h
+
+
 # The 6-marker study set (test07 on): which COLOR_RANGES entry is each marker.
 STUDY_MARKERS = {
     "L_toe": "purple", "L_heel": "green",      # left foot
@@ -204,8 +222,8 @@ def detect_two_feet_ground(frame, max_area=9000, near_px=500, top_ignore=0.08):
     def bl(color):
         return detect_blobs(color_mask(hsv, color), max_area=max_area)
 
-    L_toe, L_heel = _closest_pair(bl(STUDY_MARKERS["L_toe"]), bl(STUDY_MARKERS["L_heel"]), near_px)
-    R_toe, R_heel = _closest_pair(bl(STUDY_MARKERS["R_toe"]), bl(STUDY_MARKERS["R_heel"]), near_px)
+    L_toe, L_heel = _pair_or_lone(bl(STUDY_MARKERS["L_toe"]), bl(STUDY_MARKERS["L_heel"]), near_px)
+    R_toe, R_heel = _pair_or_lone(bl(STUDY_MARKERS["R_toe"]), bl(STUDY_MARKERS["R_heel"]), near_px)
     reds = detect_round_blobs(color_mask(hsv, STUDY_MARKERS["ground"]))[:2]
     return {"L_toe": L_toe, "L_heel": L_heel, "R_toe": R_toe, "R_heel": R_heel,
             "ground": [b[:2] for b in reds]}

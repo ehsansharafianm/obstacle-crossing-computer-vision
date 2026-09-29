@@ -249,7 +249,18 @@ def main():
             w = int(np.argmax(errs))
             if errs[w] > max(0.004, 2.5 * float(np.median(errs))):   # ~0.004 norm ≈ 6 px
                 keep = [i for i in range(len(pts)) if i != w]
-                X = triangulate_nview([pts[i] for i in keep], [Ps[i] for i in keep])
+                pts = [pts[i] for i in keep]; Ps = [Ps[i] for i in keep]
+                X = triangulate_nview(pts, Ps)
+        # 2-view reprojection gate: with only two rays there is no redundancy to
+        # catch a bad match, so reject the point when the rays don't actually meet.
+        # A false lone-marker detection in one camera won't reproject onto the real
+        # marker in the other -> large error. ~0.010 norm ≈ 15 px, far above the
+        # sub-pixel stereo RMS (0.75-0.87 px), so genuine matches are kept. This is
+        # what makes the lone-marker fallback (occluded partner) safe.
+        if len(pts) == 2:
+            e = reprojection_error(X, pts, Ps)
+            if not np.isfinite(e) or e > 0.010:
+                return np.full(3, np.nan)
         return X
 
     def norm_pts(intr, pix):
