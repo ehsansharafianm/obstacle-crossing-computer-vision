@@ -63,6 +63,7 @@ def track(video, progress=None):
     fps = (cap.get(cv2.CAP_PROP_FPS) or 30.0) * SLOWMO
     total = int(cap.get(cv2.CAP_PROP_FRAME_COUNT)) or 0
     ts, F, G = [], {k: [] for k in FEET}, []
+    prev = {k: None for k in FEET}        # last accepted (x,y) per marker -> temporal gating
     idx = 0
     t0 = time.perf_counter(); next_mark = 0.05
     while True:
@@ -72,10 +73,12 @@ def track(video, progress=None):
             ok, f = cap.retrieve()
             if not ok:
                 break
-            d = detect_two_feet_ground(f)
+            d = detect_two_feet_ground(f, prev=prev)
             ts.append(idx / fps)
             for k in FEET:
                 F[k].append(d[k] if d[k] is not None else (np.nan, np.nan))
+                if d[k] is not None:
+                    prev[k] = d[k]        # advance the track; a miss keeps the last
             G.append(d["ground"])
         idx += 1
         if progress and total and idx / total >= next_mark:
