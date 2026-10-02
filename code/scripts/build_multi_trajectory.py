@@ -63,7 +63,6 @@ def track(video, progress=None):
     fps = (cap.get(cv2.CAP_PROP_FPS) or 30.0) * SLOWMO
     total = int(cap.get(cv2.CAP_PROP_FRAME_COUNT)) or 0
     ts, F, G = [], {k: [] for k in FEET}, []
-    prev = {k: None for k in FEET}        # last accepted (x,y) per marker -> temporal gating
     idx = 0
     t0 = time.perf_counter(); next_mark = 0.05
     while True:
@@ -73,12 +72,10 @@ def track(video, progress=None):
             ok, f = cap.retrieve()
             if not ok:
                 break
-            d = detect_two_feet_ground(f, prev=prev)
+            d = detect_two_feet_ground(f)
             ts.append(idx / fps)
             for k in FEET:
                 F[k].append(d[k] if d[k] is not None else (np.nan, np.nan))
-                if d[k] is not None:
-                    prev[k] = d[k]        # advance the track; a miss keeps the last
             G.append(d["ground"])
         idx += 1
         if progress and total and idx / total >= next_mark:
@@ -252,18 +249,7 @@ def main():
             w = int(np.argmax(errs))
             if errs[w] > max(0.004, 2.5 * float(np.median(errs))):   # ~0.004 norm ≈ 6 px
                 keep = [i for i in range(len(pts)) if i != w]
-                pts = [pts[i] for i in keep]; Ps = [Ps[i] for i in keep]
-                X = triangulate_nview(pts, Ps)
-        # 2-view reprojection gate: with only two rays there is no redundancy to
-        # catch a bad match, so reject the point when the rays don't actually meet.
-        # A false lone-marker detection in one camera won't reproject onto the real
-        # marker in the other -> large error. ~0.010 norm ≈ 15 px, far above the
-        # sub-pixel stereo RMS (0.75-0.87 px), so genuine matches are kept. This is
-        # what makes the lone-marker fallback (occluded partner) safe.
-        if len(pts) == 2:
-            e = reprojection_error(X, pts, Ps)
-            if not np.isfinite(e) or e > 0.010:
-                return np.full(3, np.nan)
+                X = triangulate_nview([pts[i] for i in keep], [Ps[i] for i in keep])
         return X
 
     def norm_pts(intr, pix):

@@ -186,8 +186,7 @@ STUDY_MARKERS = {
 }
 
 
-def detect_two_feet_ground(frame, max_area=9000, near_px=500, top_ignore=0.08,
-                           prev=None, max_jump=180.0):
+def detect_two_feet_ground(frame, max_area=9000, near_px=500, top_ignore=0.08):
     """Detect the 6-marker set. Returns a dict with L_toe/L_heel/R_toe/R_heel as
     (x, y) or None, and `ground` = list of up to 2 (x, y) red ground markers
     (largest first). Each foot is the CLOSEST pair of its two colours, so
@@ -197,14 +196,6 @@ def detect_two_feet_ground(frame, max_area=9000, near_px=500, top_ignore=0.08,
     furniture (a teal-ish couch) lives along the top edge and otherwise gets
     picked up as a false heel. The floor markers and feet sit well below it.
     `max_area` also caps out the large couch blob.
-
-    Temporal gating: `prev` maps a marker to its (x, y) in the previous processed
-    frame. A real marker moves smoothly, so only blobs within `max_jump` px of that
-    position are considered for the marker -- a static clutter blob far from the
-    track (e.g. a coloured glint in a corner) is ignored even when it is the biggest
-    blob of that colour. If nothing is within range (marker occluded or re-entering),
-    all blobs are considered and the toe/heel PAIR requirement still rejects lone
-    clutter, so re-acquisition stays safe. `prev=None` disables gating.
     """
     hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
     if top_ignore > 0:
@@ -213,20 +204,8 @@ def detect_two_feet_ground(frame, max_area=9000, near_px=500, top_ignore=0.08,
     def bl(color):
         return detect_blobs(color_mask(hsv, color), max_area=max_area)
 
-    def gate(blobs, key):
-        """Keep only blobs near the marker's previous position, if we have one and
-        any qualify; otherwise fall back to all blobs (occluded / re-entering)."""
-        if prev is not None and prev.get(key) is not None and blobs:
-            near = [b for b in blobs
-                    if np.hypot(b[0] - prev[key][0], b[1] - prev[key][1]) <= max_jump]
-            if near:
-                return near
-        return blobs
-
-    L_toe, L_heel = _closest_pair(gate(bl(STUDY_MARKERS["L_toe"]), "L_toe"),
-                                  gate(bl(STUDY_MARKERS["L_heel"]), "L_heel"), near_px)
-    R_toe, R_heel = _closest_pair(gate(bl(STUDY_MARKERS["R_toe"]), "R_toe"),
-                                  gate(bl(STUDY_MARKERS["R_heel"]), "R_heel"), near_px)
+    L_toe, L_heel = _closest_pair(bl(STUDY_MARKERS["L_toe"]), bl(STUDY_MARKERS["L_heel"]), near_px)
+    R_toe, R_heel = _closest_pair(bl(STUDY_MARKERS["R_toe"]), bl(STUDY_MARKERS["R_heel"]), near_px)
     reds = detect_round_blobs(color_mask(hsv, STUDY_MARKERS["ground"]))[:2]
     return {"L_toe": L_toe, "L_heel": L_heel, "R_toe": R_toe, "R_heel": R_heel,
             "ground": [b[:2] for b in reds]}
