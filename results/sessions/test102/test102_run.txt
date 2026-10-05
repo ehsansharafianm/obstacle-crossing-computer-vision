@@ -1,42 +1,42 @@
 Test: test102
 
-Run started: 2026-09-10 12:52:26
+Run started: 2026-10-05 09:55:51
 Recording mode: normal (~60 fps)
-[test102] cam1.mp4 (cam1): tracked in 4340.8s
-[test102] cam2.mp4 (cam2): tracked in 4371.1s
-[test102] cam3.mp4 (cam3): tracked in 4179.4s
+[test102] cam1.mp4 (cam1): loaded cache in 0.0s
+[test102] cam2.mp4 (cam2): loaded cache in 0.0s
+[test102] cam3.mp4 (cam3): loaded cache in 0.0s
 [test102] 3-camera mode
-  L_toe   cam1 25%  cam2 12%  cam3 16%
-  L_heel  cam1 25%  cam2 12%  cam3 16%
-  R_toe   cam1 14%  cam2 17%  cam3 19%
-  R_heel  cam1 14%  cam2 17%  cam3 19%
-Clap: cam1 @ 8.136s (x6), cam2 @ 4.743s (x6)  -> cam2 +3.393s
-Motion candidate: cam2 +3.233s
--> cam2 sync: +3.373s = cam1   (toe-heel scatter 15 mm)  [clap agrees]
-Clap: cam3 @ 1.317s (x6)  -> cam3 +6.819s
--> cam3 sync: +6.799s = cam1   (cam2+cam3 scatter 20 mm)  [clap agrees]
+  L_toe   cam1 29%  cam2 7%  cam3 12%
+  L_heel  cam1 29%  cam2 7%  cam3 12%
+  R_toe   cam1 12%  cam2 21%  cam3 24%
+  R_heel  cam1 12%  cam2 21%  cam3 24%
+Clap: cam1 @ 9.049s (x8), cam2 @ 4.645s (x9)  -> cam2 +4.404s
+Motion candidate: cam2 +4.250s
+-> cam2 sync: +4.324s = cam1   (toe-heel scatter 15 mm)  [clap agrees]
+Clap: cam3 @ 1.788s (x13)  -> cam3 +7.261s
+-> cam3 sync: +7.181s = cam1   (cam2+cam3 scatter 18 mm)  [clap agrees]
 Audio-sync figure -> test102_audiosync.png  (3 cameras, clap jumps + alignment)
 Reconstructing from 3 cameras (marker needs >=2 to get a 3D point)
-  reconstructed points: 34314 from cam1+cam2 (wide baseline), 19294 gap-filled with cam3
-  L foot: toe-heel 291 mm, dropped 1617 outliers
-  R foot: toe-heel 308 mm, dropped 726 outliers
-Obstacle markers reconstructed in 55392/66555 frames (6897 frames rejected for high reprojection error)
+  reconstructed points: 17218 from cam1+cam2 (wide baseline), 13966 gap-filled with cam3
+  L foot: toe-heel 292 mm, dropped 543 outliers
+  R foot: toe-heel 293 mm, dropped 344 outliers
+Obstacle markers reconstructed in 29725/38060 frames (4271 frames rejected for high reprojection error)
 Output: world frame (Z = height above floor)
-  L_toe    17% reconstructed
-  L_heel   17% reconstructed
-  R_toe    22% reconstructed
-  R_heel   22% reconstructed
-  obstacle1 80% reconstructed
-  obstacle2 82% reconstructed
-Time origin: t=0 at the clap (cam1 @ 8.14s in); kept 66071 post-clap frames, dropped 484 pre-clap
+  L_toe    16% reconstructed
+  L_heel   16% reconstructed
+  R_toe    24% reconstructed
+  R_heel   24% reconstructed
+  obstacle1 71% reconstructed
+  obstacle2 75% reconstructed
+Time origin: t=0 at the clap (cam1 @ 9.05s in); kept 37522 post-clap frames, dropped 538 pre-clap
 
 Saved test102_trajectory.xlsx (markers sheet incl. obstacle1/obstacle2 + audio), test102_trajectory.png
 Aligned review clips (start AT the clap, t=0) -> synced_videos/:
-  cam1: clap @ 8.14s -> synced_videos/cam1_synced.mp4
-  cam2: clap @ 4.74s -> synced_videos/cam2_synced.mp4
-  cam3: clap @ 1.32s -> synced_videos/cam3_synced.mp4
+  cam1: synced_videos/cam1_synced.mp4 up to date -- kept
+  cam2: synced_videos/cam2_synced.mp4 up to date -- kept
+  cam3: synced_videos/cam3_synced.mp4 up to date -- kept
   3 aligned review clip(s) -> C:\Users\BiomechanicsLab2\Documents\obstacle-crossing-computer-vision\results\sessions\test102\synced_videos
 
-Run started:  2026-09-10 12:52:26
-Run finished: 2026-09-10 16:49:43
-Total processing time: 237 min 16.6 s  (14236.6 s)
+Run started:  2026-10-05 09:55:51
+Run finished: 2026-10-05 09:57:14
+Total processing time: 1 min 23.7 s  (83.7 s)

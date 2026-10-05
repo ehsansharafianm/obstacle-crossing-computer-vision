@@ -32,6 +32,10 @@ VIDEO_EXTS = (".MOV", ".mov", ".MP4", ".mp4", ".avi", ".AVI")
 SLOWMO = 4                                   # set by detect_slowmo() in main()
 FEET = ["L_toe", "L_heel", "R_toe", "R_heel"]
 PAIRS = [("L_toe", "L_heel"), ("R_toe", "R_heel")]
+CLAP_TRUST_PROM = 5.0   # clap prominence (x over ambient median) above which a
+                        # confident clap overrides a rigid-shoe minimum that sits
+                        # >1 s away (almost always a gait-period alias). Real claps
+                        # here run ~8-13x; footsteps ~1-2x, so 5x cleanly separates.
 COLORS = {"L_toe": "#7C3AED", "L_heel": "#22A559", "R_toe": "#D6336C", "R_heel": "#1098AD",
           "obstacle1": "#111111", "obstacle2": "#888888"}
 
@@ -365,7 +369,8 @@ def main():
                     stds.append(np.std(d2))
         return (float(np.mean(stds)) if stds else 1e9), ntot
 
-    def pick_offset(refTs, refF, tsB, FB, tri_pair, refOff=0.0, seeds=(), clap=None):
+    def pick_offset(refTs, refF, tsB, FB, tri_pair, refOff=0.0, seeds=(), clap=None,
+                    clap_conf=None):
         # Candidate offsets: any seeds (clap/motion -- crucial when the true offset
         # is outside the coarse window, e.g. cameras started >9 s apart) plus a
         # coarse global scan. Then refine around the best (max overlap, min scatter).
@@ -390,13 +395,20 @@ def main():
         # worse -- i.e. only override the clap when the clap detection is genuinely bad.
         if clap is not None:
             clp = refine(clap)
-            if clp is not None and rig is not None:
-                if abs(rig[1] - clap) > 1.0:              # disagree by >1 s: distrust rig
-                    if clp[0] <= 1.5 * rig[0]:            # clap fit not much worse -> clap
-                        rig = clp
-                elif clp[0] < rig[0]:                     # agree: take the tighter one
+            if clp is None:                              # sparse overlap near the clap
+                s_c, _n = rigidity(clap, *a)            # still take its real scatter,
+                clp = (s_c, clap)                        # so a confident clap can win
+            confident = (clap_conf is not None and clap_conf >= CLAP_TRUST_PROM)
+            if rig is None:
+                rig = clp
+            elif abs(rig[1] - clap) > 1.0:               # disagree by >1 s: distrust rig
+                # A confident (high-prominence) clap is trusted even when sparse foot
+                # detection makes its OWN rigid-shoe scatter look worse -- that scatter
+                # is unreliable exactly when few frames detect the markers (the 3-camera
+                # gap-fill case). Only fall back to rig for a weak/uncertain clap.
+                if confident or clp[0] <= 1.5 * rig[0]:
                     rig = clp
-            elif clp is not None:
+            elif clp[0] < rig[0]:                        # agree: take the tighter one
                 rig = clp
         return rig[1], rig[0]
 
@@ -408,8 +420,10 @@ def main():
             f"cam2 @ {ev2['clap_t']/SLOWMO:.3f}s (x{ev2['prominence']:.0f})  -> cam2 {off_clap:+.3f}s")
     if off_mot is not None:
         say(f"Motion candidate: cam2 {off_mot:+.3f}s")
+    conf12 = min(ev1["prominence"], ev2["prominence"]) if (ev1 and ev2) else None
     off, off_std = pick_offset(ts1, F1, ts2, F2, tri,
-                               seeds=(off_clap, off_mot), clap=off_clap)  # cam2 vs cam1
+                               seeds=(off_clap, off_mot), clap=off_clap,
+                               clap_conf=conf12)  # cam2 vs cam1
     tag = "  [clap agrees]" if (off_clap is not None and abs(off - off_clap) < 0.3) else "  [clap OFF]"
     say(f"-> cam2 sync: {off:+.3f}s = cam1   (toe-heel scatter {off_std:.0f} mm){tag}")
 
@@ -427,8 +441,9 @@ def main():
         # Sync cam3 against cam2 through the CLEAN cam2<->cam3 pair, SEEDED by the
         # cam3 clap (its true offset can be well outside the coarse window when the
         # cameras started many seconds apart). off3 stays relative to cam1's grid.
+        conf3 = min(ev1["prominence"], ev3["prominence"]) if (ev1 and ev3) else None
         off3, off3_std = pick_offset(ts2, F2, ts3, F3, tri23, refOff=off,
-                                     seeds=(c3clap,), clap=c3clap)
+                                     seeds=(c3clap,), clap=c3clap, clap_conf=conf3)
         tag3 = "  [clap agrees]" if (c3clap is not None and abs(off3 - c3clap) < 0.3) else "  [clap OFF]"
         say(f"-> cam3 sync: {off3:+.3f}s = cam1   (cam2+cam3 scatter {off3_std:.0f} mm){tag3}")
 
