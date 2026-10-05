@@ -41,8 +41,6 @@ MIN_PASS_S = 0.8;  % ignore bursts shorter than this (s)
 CROSS_MARKER = 'toe';   % foot point used for the y=0 crossing ('toe' or 'heel')
 MIN_OBST_FRAC = 0.05;   % obstacle must be visible in >= this fraction of a burst
                         % (no obstacle in view -> no real crossing -> skip)
-COPY_TO_ANALYSIS = false;  % keep the crossings file only in the CV project (copy to the IMU project manually)
-ANALYSIS_RESULTS = '';     % '' = auto (.../obstacle-crossing-project/Results/Parameters Output/Test N)
 
 %% ===================== INPUT + LOAD =====================
 tn = input('  Input Test Number: ');
@@ -269,21 +267,7 @@ if exist(outXls,'file'), delete(outXls); end
 writetable(Tout, outXls, 'Sheet','crossings');
 nlab = nnz(~cellfun(@isempty,code));
 fprintf('\nSaved (CV project):\n  %s  (%d of %d cycles labeled).\n', outXls, nlab, nP);
-
-% ---- also save into the IMU project's results (Parameters Output/Test N) ----
-if COPY_TO_ANALYSIS
-    ar = ANALYSIS_RESULTS;
-    if isempty(ar)
-        docs = fileparts(fileparts(mfilename('fullpath')));            % .../obstacle-crossing-computer-vision
-        docs = fileparts(docs);                                        % .../Documents
-        ar = fullfile(docs,'obstacle-crossing-project','Results','Parameters Output',['Test ' num2str(tn)]);
-    end
-    if ~isfolder(ar), mkdir(ar); end
-    dst = fullfile(ar, [id '_crossings.xlsx']);
-    [ok,msg] = copyfile(outXls, dst);
-    if ok, fprintf('Saved (IMU project):\n  %s\n', dst);
-    else,  warning('IMU-project copy failed (%s). Target: %s', msg, dst); end
-end
+fprintf('(The IMU/Analysis project fetches this file itself when it needs it - step 3 keeps it here only.)\n');
 fprintf('Done.\n');
 
 %% ========================================================================

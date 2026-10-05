@@ -40,8 +40,7 @@ id = ['test' num2str(tn)];
     P.hampelWin   = 5;     % Hampel half-window (samples), if enabled
     P.hampelNSig  = 6;     % Hampel reject threshold (robust SDs), if enabled
     P.rigidReport = true;  % report (only) frames where toe<->heel distance is implausible
-    P.copyToAnalysis = true;    % also copy the refined file into the Analysis Camera CV folder
-    P.analysisCamRoot = '';     % '' = auto (…/obstacle-crossing-project/Data/Camera CV)
+    % (The refined file is kept only in the CV project; the IMU project pulls it itself.)
     % =================================================================
 
     %% ---- locate the raw workbook for this test ----
@@ -145,26 +144,7 @@ id = ['test' num2str(tn)];
         end
     end
     fprintf('\nSaved refined trajectory:\n  %s\n', outFile);
-
-    %% ---- also copy into the Analysis Camera CV folder (Test N) ----
-    if P.copyToAnalysis
-        camRoot = P.analysisCamRoot;
-        if isempty(camRoot)
-            docs = fileparts(fileparts(fileparts(mfilename('fullpath'))));   % .../Documents
-            camRoot = fullfile(docs,'obstacle-crossing-project','Data','Camera CV');
-        end
-        num = regexp(char(base),'(\d+)','match','once');       % test22 -> 22
-        if isempty(num)
-            warning('Could not read a test number from "%s"; skipped Analysis copy.', char(base));
-        else
-            dstDir = fullfile(camRoot, ['Test ' num]);
-            if ~isfolder(dstDir), mkdir(dstDir); end
-            dst = fullfile(dstDir, [char(base) '_trajectory_refined.xlsx']);
-            [ok,msg] = copyfile(outFile, dst);
-            if ok, fprintf('Copied to Analysis Camera CV:\n  %s\n', dst);
-            else,  warning('Analysis copy failed (%s). Target: %s', msg, dst); end
-        end
-    end
+    fprintf('(The IMU/Analysis project fetches this file itself when it needs it - step 2 keeps it here only.)\n');
 
     %% ---- QC figure: raw (faint) vs refined (bold), X/Y/Z vs time ----
     qcFigure(t, markers, raw, ref, base);
