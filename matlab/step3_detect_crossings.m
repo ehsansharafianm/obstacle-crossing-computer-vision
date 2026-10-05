@@ -256,10 +256,13 @@ end
 exportgraphics(f2, fullfile(sdir,[id '_crossings_timeline.png']), 'Resolution', 150);
 
 %% ===================== SAVE (labeled) =====================
-Tout = table([P.pass]', [P.begin_s]', [P.end_s]', [P.dur_s]', {P.lead}', {P.trail}', ...
+% begin/end also as mm:ss (for lining up with the video clock) - kept alongside the seconds
+beginMMSS = arrayfun(@(e) sec2mmss(P(e).begin_s), 1:nP, 'uni', 0)';
+endMMSS   = arrayfun(@(e) sec2mmss(P(e).end_s),   1:nP, 'uni', 0)';
+Tout = table([P.pass]', [P.begin_s]', beginMMSS, [P.end_s]', endMMSS, [P.dur_s]', {P.lead}', {P.trail}', ...
              [P.lead_cross_s]', [P.trail_cross_s]', [P.L_peakz]', [P.R_peakz]', [P.obst_z]', ...
              [P.begin_row]', [P.end_row]', code, wd, ht, {P.flag}', ...
-    'VariableNames', {'pass','begin_s','end_s','dur_s','lead_leg','trail_leg', ...
+    'VariableNames', {'pass','begin_s','begin_mmss','end_s','end_mmss','dur_s','lead_leg','trail_leg', ...
     'lead_cross_s','trail_cross_s','L_peakz_mm','R_peakz_mm','obst_z_mm','begin_row','end_row', ...
     'obstacle_code','width','height','flag'});
 outXls = fullfile(sdir, [id '_crossings.xlsx']);
@@ -281,6 +284,11 @@ function m = mx(x), if any(isfinite(x)), m = max(x,[],'omitnan'); else, m = NaN;
 function s = otherLeg(s0), if s0=='L', s='R'; else, s='L'; end, end
 function c = leadColor(s), if s=='L', c=[0.20 0.45 0.80]; else, c=[0.85 0.25 0.20]; end, end
 function s = dash(x), if isempty(x), s='-'; else, s=x; end, end
+function s = sec2mmss(x)
+% Seconds -> "MM:SS" (minutes:seconds, zero-padded), for lining up with the video clock.
+    if ~isfinite(x), s = ''; return; end
+    t = round(x);  s = sprintf('%02d:%02d', floor(t/60), mod(t,60));
+end
 
 function [ab, code, act] = askTrial(prompt, nP)
 % Parse one trial line "[start finish]=code" (brackets optional; a single cycle also OK,
