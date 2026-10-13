@@ -380,9 +380,9 @@ def main():
         nmax = max((c[2] for c in scored), default=0) or 1
         good = [c for c in scored if c[2] >= 0.4 * nmax and c[1] < 1e8] or scored
 
-        def refine(o0):                                   # fine scan -> (scatter, offset)
+        def refine(o0, win=0.4):                          # fine scan -> (scatter, offset)
             best = None
-            for o in np.arange(o0 - 0.4, o0 + 0.4, 0.02):
+            for o in np.arange(o0 - win, o0 + win, 0.02):
                 s, n = rigidity(o, *a)
                 if n >= 0.4 * nmax and (best is None or s < best[0]):
                     best = (s, o)
@@ -408,7 +408,18 @@ def main():
                 # gap-fill case). Only fall back to rig for a weak/uncertain clap.
                 if confident or clp[0] <= 1.5 * rig[0]:
                     rig = clp
-            elif clp[0] < rig[0]:                        # agree: take the tighter one
+            elif confident:                              # agree, and the clap is confident
+                # The clap is a verified physical anchor: both clap peaks come from the
+                # same smoothed envelope so any bias cancels in the DIFFERENCE, leaving
+                # the offset accurate to ~10 ms (independently confirmed by full-audio
+                # cross-correlation). The toe-heel rigidity is a WEAK, shallow sync
+                # constraint -- toe and heel translate together -- so its minimum sits
+                # 100+ ms off and only BIASES the clap (test105: the rigid pull was
+                # 135-150 ms off, and even a 3-frame refine still slid to the edge
+                # chasing scatter noise). So take the clap offset itself, unrefined.
+                s_c, _n = rigidity(clap, *a)
+                rig = (s_c, clap)
+            elif clp[0] < rig[0]:                        # agree, weak clap: take the tighter
                 rig = clp
         return rig[1], rig[0]
 
