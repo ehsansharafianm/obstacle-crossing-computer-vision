@@ -1,0 +1,42 @@
+Test: test106
+
+Run started: 2026-10-15 09:59:11
+Recording mode: normal (~60 fps)
+[test106] cam1.mp4 (cam1): tracked in 3218.3s
+[test106] cam2.mp4 (cam2): tracked in 2842.0s
+[test106] cam3.mp4 (cam3): tracked in 2938.0s
+[test106] 3-camera mode
+  L_toe   cam1 24%  cam2 14%  cam3 16%
+  L_heel  cam1 24%  cam2 14%  cam3 16%
+  R_toe   cam1 17%  cam2 17%  cam3 20%
+  R_heel  cam1 17%  cam2 17%  cam3 20%
+Clap: cam1 @ 12.842s (x14), cam2 @ 6.170s (x26)  -> cam2 +6.673s
+Motion candidate: cam2 +6.000s
+-> cam2 sync: +6.673s = cam1   (toe-heel scatter 18 mm)  [clap agrees]
+Clap: cam3 @ 3.088s (x41)  -> cam3 +9.754s
+-> cam3 sync: +9.754s = cam1   (cam2+cam3 scatter 18 mm)  [clap agrees]
+Audio-sync figure -> test106_audiosync.png  (3 cameras, clap jumps + alignment)
+Reconstructing from 3 cameras (marker needs >=2 to get a 3D point)
+  reconstructed points: 22216 from cam1+cam2 (wide baseline), 15586 gap-filled with cam3
+  L foot: toe-heel 291 mm, dropped 1676 outliers
+  R foot: toe-heel 292 mm, dropped 539 outliers
+Obstacle markers reconstructed in 33924/44523 frames (5945 frames rejected for high reprojection error)
+Output: world frame (Z = height above floor)
+  L_toe    18% reconstructed
+  L_heel   18% reconstructed
+  R_toe    22% reconstructed
+  R_heel   22% reconstructed
+  obstacle1 72% reconstructed
+  obstacle2 75% reconstructed
+Time origin: t=0 at the clap (cam1 @ 12.84s in); kept 43760 post-clap frames, dropped 763 pre-clap
+
+Saved test106_trajectory.xlsx (markers sheet incl. obstacle1/obstacle2 + audio), test106_trajectory.png
+Aligned review clips (start AT the clap, t=0) -> synced_videos/:
+  cam1: clap @ 12.84s -> synced_videos/cam1_synced.mp4
+  cam2: clap @ 6.17s -> synced_videos/cam2_synced.mp4
+  cam3: clap @ 3.09s -> synced_videos/cam3_synced.mp4
+  3 aligned review clip(s) -> C:\Users\BiomechanicsLab2\Documents\obstacle-crossing-computer-vision\results\sessions\test106\synced_videos
+
+Run started:  2026-10-15 09:59:11
+Run finished: 2026-10-15 12:42:56
+Total processing time: 163 min 45.8 s  (9825.8 s)
