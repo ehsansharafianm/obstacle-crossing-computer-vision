@@ -1,0 +1,42 @@
+Test: test104
+
+Run started: 2026-10-12 11:18:31
+Recording mode: normal (~60 fps)
+[test104] cam1.mp4 (cam1): tracked in 3349.0s
+[test104] cam2.mp4 (cam2): tracked in 3476.7s
+[test104] cam3.mp4 (cam3): tracked in 3262.5s
+[test104] 3-camera mode
+  L_toe   cam1 28%  cam2 12%  cam3 21%
+  L_heel  cam1 28%  cam2 12%  cam3 21%
+  R_toe   cam1 14%  cam2 22%  cam3 24%
+  R_heel  cam1 14%  cam2 22%  cam3 24%
+Clap: cam1 @ 8.890s (x7), cam2 @ 4.402s (x12)  -> cam2 +4.488s
+Motion candidate: cam2 +3.900s
+-> cam2 sync: +4.468s = cam1   (toe-heel scatter 16 mm)  [clap agrees]
+Clap: cam3 @ 1.872s (x16)  -> cam3 +7.018s
+-> cam3 sync: +7.018s = cam1   (cam2+cam3 scatter 24 mm)  [clap agrees]
+Audio-sync figure -> test104_audiosync.png  (3 cameras, clap jumps + alignment)
+Reconstructing from 3 cameras (marker needs >=2 to get a 3D point)
+  reconstructed points: 26716 from cam1+cam2 (wide baseline), 23842 gap-filled with cam3
+  L foot: toe-heel 248 mm, dropped 1586 outliers
+  R foot: toe-heel 254 mm, dropped 387 outliers
+Obstacle markers reconstructed in 30578/48874 frames (8855 frames rejected for high reprojection error)
+Output: world frame (Z = height above floor)
+  L_toe    24% reconstructed
+  L_heel   24% reconstructed
+  R_toe    26% reconstructed
+  R_heel   26% reconstructed
+  obstacle1 59% reconstructed
+  obstacle2 61% reconstructed
+Time origin: t=0 at the clap (cam1 @ 8.89s in); kept 48345 post-clap frames, dropped 529 pre-clap
+
+Saved test104_trajectory.xlsx (markers sheet incl. obstacle1/obstacle2 + audio), test104_trajectory.png
+Aligned review clips (start AT the clap, t=0) -> synced_videos/:
+  cam1: clap @ 8.89s -> synced_videos/cam1_synced.mp4
+  cam2: clap @ 4.40s -> synced_videos/cam2_synced.mp4
+  cam3: clap @ 1.87s -> synced_videos/cam3_synced.mp4
+  3 aligned review clip(s) -> C:\Users\BiomechanicsLab2\Documents\obstacle-crossing-computer-vision\results\sessions\test104\synced_videos
+
+Run started:  2026-10-12 11:18:31
+Run finished: 2026-10-12 14:21:34
+Total processing time: 183 min 3.1 s  (10983.1 s)
