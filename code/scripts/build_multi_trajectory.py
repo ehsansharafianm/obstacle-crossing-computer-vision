@@ -394,31 +394,31 @@ def main():
         # as low one stride off). So trust the clap unless its own local fit is much
         # worse -- i.e. only override the clap when the clap detection is genuinely bad.
         if clap is not None:
-            clp = refine(clap)
-            if clp is None:                              # sparse overlap near the clap
-                s_c, _n = rigidity(clap, *a)            # still take its real scatter,
-                clp = (s_c, clap)                        # so a confident clap can win
             confident = (clap_conf is not None and clap_conf >= CLAP_TRUST_PROM)
+            # A confident clap is a HARD physical anchor: both clap peaks come from the
+            # same smoothed envelope, so any bias cancels in the DIFFERENCE, leaving the
+            # offset accurate to ~10 ms (independently confirmed by full-audio cross-
+            # correlation). The toe-heel rigidity is a WEAK, shallow sync constraint
+            # (toe and heel translate together), so refine() around the clap can slide
+            # up to its whole window off-anchor chasing scatter noise -- test105 drifted
+            # ~135 ms, test107 cam2 slid to the +0.4 s window EDGE (400 ms). So for a
+            # confident clap, take the clap offset EXACTLY (no refine) in every branch;
+            # only a weak/uncertain clap gets the rigidity refine.
+            if confident:
+                s_c, _n = rigidity(clap, *a)
+                clp = (s_c, clap)
+            else:
+                clp = refine(clap)
+                if clp is None:                          # sparse overlap near the clap
+                    s_c, _n = rigidity(clap, *a)
+                    clp = (s_c, clap)
             if rig is None:
                 rig = clp
-            elif abs(rig[1] - clap) > 1.0:               # disagree by >1 s: distrust rig
-                # A confident (high-prominence) clap is trusted even when sparse foot
-                # detection makes its OWN rigid-shoe scatter look worse -- that scatter
-                # is unreliable exactly when few frames detect the markers (the 3-camera
-                # gap-fill case). Only fall back to rig for a weak/uncertain clap.
-                if confident or clp[0] <= 1.5 * rig[0]:
+            elif abs(rig[1] - clap) > 1.0:               # rig is a gait-period alias
+                if confident or clp[0] <= 1.5 * rig[0]:  # trust the clap unless it is weak
                     rig = clp
-            elif confident:                              # agree, and the clap is confident
-                # The clap is a verified physical anchor: both clap peaks come from the
-                # same smoothed envelope so any bias cancels in the DIFFERENCE, leaving
-                # the offset accurate to ~10 ms (independently confirmed by full-audio
-                # cross-correlation). The toe-heel rigidity is a WEAK, shallow sync
-                # constraint -- toe and heel translate together -- so its minimum sits
-                # 100+ ms off and only BIASES the clap (test105: the rigid pull was
-                # 135-150 ms off, and even a 3-frame refine still slid to the edge
-                # chasing scatter noise). So take the clap offset itself, unrefined.
-                s_c, _n = rigidity(clap, *a)
-                rig = (s_c, clap)
+            elif confident:                              # agree: the exact clap wins
+                rig = clp
             elif clp[0] < rig[0]:                        # agree, weak clap: take the tighter
                 rig = clp
         return rig[1], rig[0]
