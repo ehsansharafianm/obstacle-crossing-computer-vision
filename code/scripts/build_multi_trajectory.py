@@ -38,6 +38,10 @@ CLAP_TRUST_PROM = 5.0   # clap prominence (x over ambient median) above which a
                         # here run ~8-13x; footsteps ~1-2x, so 5x cleanly separates.
 COLORS = {"L_toe": "#7C3AED", "L_heel": "#22A559", "R_toe": "#D6336C", "R_heel": "#1098AD",
           "obstacle1": "#111111", "obstacle2": "#888888"}
+# Per-session override of which COLOUR is on each foot marker, set in main() from an
+# optional videos/sessions/<tid>/markers.json (None = study default). Lets a participant
+# who wore markers swapped (e.g. toe colours on the wrong feet) be tracked correctly.
+MARKER_MAP = None
 
 
 def detect_slowmo(video):
@@ -76,7 +80,7 @@ def track(video, progress=None):
             ok, f = cap.retrieve()
             if not ok:
                 break
-            d = detect_two_feet_ground(f)
+            d = detect_two_feet_ground(f, marker_map=MARKER_MAP)
             ts.append(idx / fps)
             for k in FEET:
                 F[k].append(d[k] if d[k] is not None else (np.nan, np.nan))
@@ -94,13 +98,15 @@ def load_or_track(video, cache_path, progress=None):
     """Track, caching the 2D detections keyed by the clip's mtime so re-runs skip
     the slow decode. Delete the *_track_cache.npz to force a fresh track."""
     mt = video.stat().st_mtime
+    mmap_sig = repr(MARKER_MAP)          # colour->marker map; a change must re-track
     if cache_path.exists():
         z = np.load(cache_path, allow_pickle=True)
-        if float(z["mtime"]) == mt:
+        cached_sig = str(z["mmap"]) if "mmap" in z.files else repr(None)
+        if float(z["mtime"]) == mt and cached_sig == mmap_sig:
             F = {k: z[f"F_{k}"] for k in FEET}
             return z["ts"], F, list(z["G"]), True
     ts, F, G = track(video, progress=progress)
-    np.savez(cache_path, ts=ts, G=np.array(G, dtype=object), mtime=mt,
+    np.savez(cache_path, ts=ts, G=np.array(G, dtype=object), mtime=mt, mmap=mmap_sig,
              **{f"F_{k}": F[k] for k in FEET})
     return ts, F, G, False
 
@@ -220,6 +226,21 @@ def main():
     global SLOWMO
     SLOWMO = detect_slowmo(cam1)
     say(f"Recording mode: {'normal (~60 fps)' if SLOWMO == 1 else 'slow-mo 1/4 (120 fps real)'}")
+
+    # Per-session marker-colour override (for a participant who wore markers swapped).
+    # Drop a markers.json like {"L_toe":"pink","R_toe":"purple"} in the session's
+    # RESULTS folder (tracked in git -> reproducible) or its videos folder. Results
+    # wins if both exist. Absent -> the study default map (STUDY_MARKERS).
+    global MARKER_MAP
+    mmap_path = next((p for p in (folder / "markers.json", video_dir / "markers.json")
+                      if p.exists()), None)
+    if mmap_path is not None:
+        import json
+        MARKER_MAP = json.loads(mmap_path.read_text())
+        say(f"Marker map OVERRIDE ({mmap_path.parent.name}/{mmap_path.name}): "
+            + ", ".join(f"{k}={v}" for k, v in MARKER_MAP.items()))
+    else:
+        MARKER_MAP = None
 
     intr1 = Intrinsics.load(CALIB_ACTIVE / "intrinsics_cam1.npz")
     intr2 = Intrinsics.load(CALIB_ACTIVE / "intrinsics_cam2.npz")

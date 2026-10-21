@@ -1,31 +1,32 @@
 Test: test107
 
-Run started: 2026-10-20 13:48:31
+Run started: 2026-10-20 18:08:06
 Recording mode: normal (~60 fps)
-[test107] cam1.mp4 (cam1): loaded cache in 0.0s
-[test107] cam2.mp4 (cam2): loaded cache in 0.1s
-[test107] cam3.mp4 (cam3): loaded cache in 0.0s
+Marker map OVERRIDE (markers.json): L_toe=pink, L_heel=green, R_toe=purple, R_heel=teal
+[test107] cam1.mp4 (cam1): tracked in 2994.8s
+[test107] cam2.mp4 (cam2): tracked in 2643.4s
+[test107] cam3.mp4 (cam3): tracked in 2688.4s
 [test107] 3-camera mode
-  L_toe   cam1 26%  cam2 14%  cam3 24%
-  L_heel  cam1 26%  cam2 14%  cam3 24%
-  R_toe   cam1 8%  cam2 16%  cam3 17%
-  R_heel  cam1 8%  cam2 16%  cam3 17%
+  L_toe   cam1 24%  cam2 13%  cam3 20%
+  L_heel  cam1 24%  cam2 13%  cam3 20%
+  R_toe   cam1 16%  cam2 20%  cam3 24%
+  R_heel  cam1 16%  cam2 20%  cam3 24%
 Clap: cam1 @ 9.347s (x18), cam2 @ 5.606s (x15)  -> cam2 +3.742s
 Motion candidate: cam2 +3.167s
--> cam2 sync: +3.742s = cam1   (toe-heel scatter 58 mm)  [clap agrees]
+-> cam2 sync: +3.742s = cam1   (toe-heel scatter 26 mm)  [clap agrees]
 Clap: cam3 @ 3.011s (x23)  -> cam3 +6.336s
--> cam3 sync: +6.336s = cam1   (cam2+cam3 scatter 46 mm)  [clap agrees]
+-> cam3 sync: +6.336s = cam1   (cam2+cam3 scatter 13 mm)  [clap agrees]
 Audio-sync figure -> test107_audiosync.png  (3 cameras, clap jumps + alignment)
 Reconstructing from 3 cameras (marker needs >=2 to get a 3D point)
-  reconstructed points: 17644 from cam1+cam2 (wide baseline), 19920 gap-filled with cam3
-  L foot: toe-heel 391 mm, dropped 1304 outliers
-  R foot: toe-heel 365 mm, dropped 1734 outliers
+  reconstructed points: 20730 from cam1+cam2 (wide baseline), 18928 gap-filled with cam3
+  L foot: toe-heel 298 mm, dropped 526 outliers
+  R foot: toe-heel 294 mm, dropped 2157 outliers
 Obstacle markers reconstructed in 30495/41057 frames (6205 frames rejected for high reprojection error)
 Output: world frame (Z = height above floor)
-  L_toe    24% reconstructed
-  L_heel   25% reconstructed
-  R_toe    17% reconstructed
-  R_heel   17% reconstructed
+  L_toe    23% reconstructed
+  L_heel   23% reconstructed
+  R_toe    21% reconstructed
+  R_heel   22% reconstructed
   obstacle1 72% reconstructed
   obstacle2 73% reconstructed
 Time origin: t=0 at the clap (cam1 @ 9.35s in); kept 40501 post-clap frames, dropped 556 pre-clap
@@ -37,6 +38,6 @@ Aligned review clips (start AT the clap, t=0) -> synced_videos/:
   cam3: synced_videos/cam3_synced.mp4 up to date -- kept
   3 aligned review clip(s) -> C:\Users\BiomechanicsLab2\Documents\obstacle-crossing-computer-vision\results\sessions\test107\synced_videos
 
-Run started:  2026-10-20 13:48:31
-Run finished: 2026-10-20 13:49:43
-Total processing time: 1 min 11.3 s  (71.3 s)
+Run started:  2026-10-20 18:08:06
+Run finished: 2026-10-20 20:28:09
+Total processing time: 140 min 2.8 s  (8402.8 s)

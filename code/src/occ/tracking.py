@@ -186,7 +186,8 @@ STUDY_MARKERS = {
 }
 
 
-def detect_two_feet_ground(frame, max_area=9000, near_px=500, top_ignore=0.08):
+def detect_two_feet_ground(frame, max_area=9000, near_px=500, top_ignore=0.08,
+                           marker_map=None):
     """Detect the 6-marker set. Returns a dict with L_toe/L_heel/R_toe/R_heel as
     (x, y) or None, and `ground` = list of up to 2 (x, y) red ground markers
     (largest first). Each foot is the CLOSEST pair of its two colours, so
@@ -196,7 +197,12 @@ def detect_two_feet_ground(frame, max_area=9000, near_px=500, top_ignore=0.08):
     furniture (a teal-ish couch) lives along the top edge and otherwise gets
     picked up as a false heel. The floor markers and feet sit well below it.
     `max_area` also caps out the large couch blob.
+
+    `marker_map` overrides which COLOUR is on each named marker (e.g. a participant
+    who wore the toe markers swapped: {"L_toe": "pink", "R_toe": "purple"}). Keys
+    omitted fall back to the study default STUDY_MARKERS. None = the default map.
     """
+    mm = STUDY_MARKERS if marker_map is None else {**STUDY_MARKERS, **marker_map}
     hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
     if top_ignore > 0:
         hsv[:int(frame.shape[0] * top_ignore)] = 0
@@ -204,9 +210,9 @@ def detect_two_feet_ground(frame, max_area=9000, near_px=500, top_ignore=0.08):
     def bl(color):
         return detect_blobs(color_mask(hsv, color), max_area=max_area)
 
-    L_toe, L_heel = _closest_pair(bl(STUDY_MARKERS["L_toe"]), bl(STUDY_MARKERS["L_heel"]), near_px)
-    R_toe, R_heel = _closest_pair(bl(STUDY_MARKERS["R_toe"]), bl(STUDY_MARKERS["R_heel"]), near_px)
-    reds = detect_round_blobs(color_mask(hsv, STUDY_MARKERS["ground"]))[:2]
+    L_toe, L_heel = _closest_pair(bl(mm["L_toe"]), bl(mm["L_heel"]), near_px)
+    R_toe, R_heel = _closest_pair(bl(mm["R_toe"]), bl(mm["R_heel"]), near_px)
+    reds = detect_round_blobs(color_mask(hsv, mm["ground"]))[:2]
     return {"L_toe": L_toe, "L_heel": L_heel, "R_toe": R_toe, "R_heel": R_heel,
             "ground": [b[:2] for b in reds]}
 
