@@ -20,25 +20,45 @@ tn = input('  Input Test Number: ');
 id = ['test' num2str(tn)];
 
     % ===================== PARAMETERS (edit here) =====================
-    % The reconstruction already drops far outliers, and the real leg-raise/cross
-    % peaks are large & fast, so refinement is GENTLE: only cut clear out-of-volume
-    % coords and isolated out-and-back spikes, then fill short gaps and de-jitter.
+    % >>> REFINING STRENGTH: you are PROMPTED for this each run (Enter = medium).
+    %   slight   = barely touch it   - keep raw peaks; light smoothing, cut only BIG
+    %              spikes, fill only very short gaps. Use when the data is already clean
+    %              or you want to preserve fast motion exactly.
+    %   medium   = the balanced default (what step 2 has always used).
+    %   powerful = aggressive clean-up - strong smoothing, cut smaller spikes + a Hampel
+    %              local despike, fill longer gaps. Use on noisy sessions, BUT it can
+    %              round off genuine fast clearance/leg-raise peaks, so check the QC plot.
+    lvl = input('  Refining level - s = slight / m = medium / p = powerful  [Enter = m]: ', 's');
+    % ---- the chosen level sets the four STRENGTH knobs below (s/m/p also accepted) ----
+    switch lower(strtrim(lvl))
+        case {'s','slight'}                             % gentlest
+            P.level = 'slight';   P.jumpMM = 250; P.maxGapS = 0.25; P.smoothWin = 5;  P.useHampel = false; P.hampelNSig = 6;
+        case {'','m','medium'}                          % Enter = previous defaults (unchanged behaviour)
+            P.level = 'medium';   P.jumpMM = 150; P.maxGapS = 0.50; P.smoothWin = 9;  P.useHampel = false; P.hampelNSig = 6;
+        case {'p','powerful'}                           % strongest
+            P.level = 'powerful'; P.jumpMM = 100; P.maxGapS = 1.00; P.smoothWin = 15; P.useHampel = true;  P.hampelNSig = 4;
+        otherwise
+            error('Refining level must be slight / medium / powerful (or s/m/p), got "%s".', lvl);
+    end
+    %   jumpMM   : isolated 3D per-frame jump (mm) above which a spike is cut  (lower = cuts more)
+    %   maxGapS  : fill internal gaps up to this long (s) via pchip; longer -> NaN  (higher = fills more)
+    %   smoothWin: smoothing window (samples)                                 (higher = smoother)
+    %   useHampel: extra local median despike                                 (on in 'powerful' only)
+    %   hampelNSig: Hampel reject threshold in robust SDs, when enabled       (lower = cuts more)
+    %   (Override any single knob by editing it on a line AFTER this switch, if you like.)
+
+    % ---- level-INDEPENDENT settings (physical limits + options) -------------------
     P.xyBounds    = [-3000 3000];  % plausible lateral/walking range (mm) -> else glitch
     P.zFloorMM    = 0;     % height floor (mm): Z below this is impossible -> removed & re-filled,
                            %   and the final output is clamped to it (raise ~15-25 to also cut near-floor noise)
     P.zMaxMM      = 1300;  % height ceiling (mm) -> above this is a glitch
     P.obstMaxMM   = 600;   % OBSTACLE-only height ceiling (mm): an obstacle above 60 cm is
                            %   physically impossible -> noise, removed (feet can go higher)
-    P.jumpMM      = 150;   % isolated 3D per-frame jump (mm) above which a spike is cut
-    P.maxGapS     = 0.50;  % fill internal gaps up to this long (s) via pchip; longer -> NaN
     P.fillAllInternal = false;  % true = bridge EVERY internal gap regardless of length
                                 %   (fills the long between-pass voids too - use with care:
                                 %    it invents motion where the foot was out of view)
-    P.smoothWin   = 9;     % smoothing window (samples); set 0 to disable
     P.smoothMeth  = 'sgolay';   % 'sgolay' | 'gaussian' | 'movmean'
-    P.useHampel   = false; % optional local despike (OFF: real runs are short & spiky)
-    P.hampelWin   = 5;     % Hampel half-window (samples), if enabled
-    P.hampelNSig  = 6;     % Hampel reject threshold (robust SDs), if enabled
+    P.hampelWin   = 5;     % Hampel half-window (samples), used only when useHampel is on
     P.rigidReport = true;  % report (only) frames where toe<->heel distance is implausible
     % (The refined file is kept only in the CV project; the IMU project pulls it itself.)
     % =================================================================
@@ -59,8 +79,8 @@ id = ['test' num2str(tn)];
     t  = T.time_s;  n = numel(t);
     fs = 1/median(diff(t),'omitnan');
     maxGapFrames = max(1, round(P.maxGapS*fs));
-    fprintf('Refine: %s\n  %d frames, ~%.1f Hz, fill gaps <= %d frames (%.2f s)\n', ...
-            datafile, n, fs, maxGapFrames, P.maxGapS);
+    fprintf('Refine [%s]: %s\n  %d frames, ~%.1f Hz | jump>%d mm cut, smoothWin %d, Hampel %s, fill gaps <= %d frames (%.2f s)\n', ...
+            upper(P.level), datafile, n, fs, P.jumpMM, P.smoothWin, string(P.useHampel), maxGapFrames, P.maxGapS);
 
     %% ---- auto-detect markers ----
     markers = {};
